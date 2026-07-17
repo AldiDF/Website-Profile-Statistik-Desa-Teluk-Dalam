@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistik Desa</title>
+    <link rel="stylesheet" href="../styless/statistik.css">
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="logo">DesaKu</div>
+        <ul class="nav-links">
+            <li><a href="../index.html">Beranda</a></li>
+            <li><a href="../halaman/statistik.html" class="active">Statistik</a></li>
+            <li><a href="../halaman/kontak.html">Kontak</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <!-- Judul dan Filter RT -->
+        <div class="header-section">
+            <h2>Statistik Desa</h2>
+
+            <div class="filter">
+                <button class="active">Semua</button>
+                <button>RT1</button>
+                <button>RT2</button>
+                <button>RT3</button>
+                <button>RT4</button>
+            </div>
+        </div>
+
+        <!-- Deskripsi -->
+        <div class="description-box">
+            <h3>Deskripsi</h3>
+            <p>
+                Lorem ipsum dolor sit amet consectetur adipisicing elit.
+                Tempore, perferendis.
+            </p>
+        </div>
+
+        <!-- Statistik -->
+        <div class="statistik-box">
+
+            <div class="card">
+                <h4>Jumlah Penduduk</h4>
+                <span>2.540</span>
+            </div>
+
+            <div class="card">
+                <h4>Jumlah Keluarga</h4>
+                <span>785</span>
+            </div>
+
+            <div class="card">
+                <h4>Jumlah Laki-laki</h4>
+                <span>1.245</span>
+            </div>
+
+            <div class="card">
+                <h4>Jumlah Perempuan</h4>
+                <span>1.295</span>
+            </div>
+
+        </div>
+
+        <!-- Grafik Penduduk per RT -->
+        <div class="chart-section">
+
+            <h3>Perbandingan Jumlah Penduduk Setiap RT</h3>
+
+            <div class="chart-container">
+
+                <div class="chart-box">
+                    <canvas id="rtChart"></canvas>
+                </div>
+
+                <div class="chart-info">
+                    <h4>Keterangan</h4>
+
+                    <ul>
+                        <li><span class="color rt1"></span> RT 1 : <strong>540</strong> Jiwa</li>
+                        <li><span class="color rt2"></span> RT 2 : <strong>620</strong> Jiwa</li>
+                        <li><span class="color rt3"></span> RT 3 : <strong>480</strong> Jiwa</li>
+                        <li><span class="color rt4"></span> RT 4 : <strong>900</strong> Jiwa</li>
+                    </ul>
+
+                    <div class="total">
+                        Total Penduduk
+                        <h2>2.540 Jiwa</h2>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Grafik Pendidikan -->
+        <div class="chart-section">
+
+            <h3>Pendidikan Penduduk</h3>
+
+            <div class="chart-box-full">
+                <canvas id="pendidikanChart"></canvas>
+            </div>
+
+        </div>
+
+        <!-- Agama -->
+        <div class="statistik-section">
+
+            <h3>Penganut Agama</h3>
+
+            <div class="statistik-box">
+
+                <div class="card">
+                    <h4>Islam</h4>
+                    <span>2.180</span>
+                </div>
+
+                <div class="card">
+                    <h4>Kristen</h4>
+                    <span>180</span>
+                </div>
+
+                <div class="card">
+                    <h4>Katolik</h4>
+                    <span>75</span>
+                </div>
+
+                <div class="card">
+                    <h4>Hindu</h4>
+                    <span>45</span>
+                </div>
+
+                <div class="card">
+                    <h4>Buddha</h4>
+                    <span>52</span>
+                </div>
+
+                <div class="card">
+                    <h4>Konghucu</h4>
+                    <span>8</span>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Pekerjaan -->
+        <div class="chart-section">
+
+            <h3>Pekerjaan Penduduk</h3>
+
+            <div class="chart-box-full">
+                <canvas id="pekerjaanChart"></canvas>
+            </div>
+
+        </div>
+
+</body>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+    const ctx = document.getElementById('rtChart');
+
+    new Chart(ctx, {
+
+        type: 'pie',
+
+        data: {
+
+            labels: ['RT 1', 'RT 2', 'RT 3', 'RT 4'],
+
+            datasets: [{
+
+                data: [540, 620, 480, 900],
+
+                backgroundColor: [
+                    '#3498db',
+                    '#2ecc71',
+                    '#f39c12',
+                    '#e74c3c'
+                ],
+
+                borderColor: '#ffffff',
+                borderWidth: 3
+
+            }]
+
+        },
+
+        options: {
+
+            responsive: true,
+
+            plugins: {
+
+                legend: {
+                    display: false
+                }
+
+            }
+
+        }
+
+    });
+
+    // Grafik Pendidikan
+
+    const pendidikan = document.getElementById('pendidikanChart');
+
+    new Chart(pendidikan, {
+
+        type: 'bar',
+
+        data: {
+
+            labels: [
+                'Tidak Sekolah',
+                'SD',
+                'SMP',
+                'SMA',
+                'Diploma',
+                'S1',
+                'S2'
+            ],
+
+            datasets: [{
+
+                label: 'Jumlah Penduduk',
+
+                data: [
+                    85,
+                    420,
+                    380,
+                    650,
+                    120,
+                    260,
+                    45
+                ],
+
+                backgroundColor: '#58c472',
+
+                borderRadius: 8
+
+            }]
+
+        },
+
+        options: {
+
+            responsive: true,
+
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+
+        }
+
+    })
+
+    const pekerjaan = document.getElementById('pekerjaanChart');
+
+    new Chart(pekerjaan, {
+
+        type: 'bar',
+
+        data: {
+
+            labels: [
+                'Petani',
+                'Pedagang',
+                'Nelayan',
+                'PNS',
+                'Wiraswasta',
+                'Pelajar',
+                'Mahasiswa',
+                'Lainnya'
+            ],
+
+            datasets: [{
+
+                data: [
+                    520,
+                    180,
+                    90,
+                    140,
+                    300,
+                    450,
+                    180,
+                    160
+                ],
+
+                backgroundColor: '#4f8ef7',
+
+                borderRadius: 8
+
+            }]
+
+        },
+
+        options: {
+
+            indexAxis: 'y',
+
+            responsive: true,
+
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+
+            scales: {
+                x: {
+                    beginAtZero: true
+                }
+            }
+
+        }
+
+    });
+
+
+</script>
+
+</html>
