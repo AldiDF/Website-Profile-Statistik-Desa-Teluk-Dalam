@@ -204,17 +204,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $title_page ?></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --hijau-tua: #0f4c3a;
+            --hijau-gelap: #0c3c2e;
+            --emas: #f4b400;
+            --abu-teks: #898781;
+            --border-soft: #e1e0d9;
+            --bg: #f6f5f1;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Arial, sans-serif;
+            font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
         }
 
         body {
-            background: #f1f5f9;
-            color: #1e293b;
+            background: var(--bg);
+            color: #2b2b28;
+        }
+
+        .topbar {
+            background: var(--hijau-tua);
+            color: #fff;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+
+        .topbar img {
+            width: 35px;
+            height: 40px;
+            border-radius: 50%;
+            display: block;
+        }
+
+        .topbar span {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .page-wrap {
             padding: 2rem 1rem;
         }
 
@@ -222,8 +259,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             max-width: 780px;
             margin: 0 auto;
             background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-radius: 14px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
             padding: 1.8rem 2rem 2.2rem;
         }
 
@@ -233,28 +270,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             align-items: center;
             margin-bottom: 1.5rem;
             padding-bottom: 1rem;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border-soft);
         }
 
         .form-header h1 {
             font-size: 1.3rem;
-            color: #1e293b;
+            font-weight: 600;
+            color: var(--hijau-tua);
         }
 
         .badge-mode {
             font-size: 0.75rem;
             font-weight: 600;
-            padding: 0.25rem 0.7rem;
+            padding: 0.3rem 0.8rem;
             border-radius: 12px;
         }
 
         .badge-mode.tambah {
-            background: #dbeafe;
-            color: #1d4ed8;
+            background: rgba(15, 76, 58, 0.1);
+            color: var(--hijau-tua);
         }
 
         .badge-mode.edit {
-            background: #fef9c3;
+            background: rgba(244, 180, 0, 0.18);
             color: #a16207;
         }
 
@@ -262,7 +300,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: #fee2e2;
             color: #b91c1c;
             padding: 0.7rem 1rem;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 0.88rem;
             margin-bottom: 1.2rem;
         }
@@ -280,33 +318,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-group label {
             display: block;
             font-size: 0.82rem;
-            color: #475569;
+            color: var(--hijau-tua);
             margin-bottom: 0.35rem;
             font-weight: 600;
         }
 
         .form-group .hint {
             font-weight: 400;
-            color: #94a3b8;
+            color: var(--abu-teks);
             font-size: 0.75rem;
         }
 
         .form-group input,
         .form-group select {
             width: 100%;
-            padding: 0.6rem 0.75rem;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
+            padding: 0.65rem 0.8rem;
+            border: 1.5px solid var(--border-soft);
+            border-radius: 8px;
             font-size: 0.9rem;
-            color: #1e293b;
+            font-family: inherit;
+            color: #2b2b28;
             background: #fff;
         }
 
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+            border-color: var(--emas);
+            box-shadow: 0 0 0 3px rgba(244, 180, 0, 0.18);
         }
 
         .form-footer {
@@ -315,40 +354,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             gap: 0.7rem;
             margin-top: 1.8rem;
             padding-top: 1.2rem;
-            border-top: 1px solid #e2e8f0;
+            border-top: 1px solid var(--border-soft);
         }
 
         .btn-cancel {
-            padding: 0.6rem 1.3rem;
-            border-radius: 6px;
-            border: 1px solid #cbd5e1;
+            padding: 0.65rem 1.3rem;
+            border-radius: 8px;
+            border: 1.5px solid var(--border-soft);
             background: #fff;
-            color: #475569;
+            color: var(--abu-teks);
             font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
+            transition: background 0.2s;
         }
 
         .btn-cancel:hover {
-            background: #f8fafc;
+            background: #f6f5f1;
         }
 
         .btn-save {
-            padding: 0.6rem 1.3rem;
-            border-radius: 6px;
+            padding: 0.65rem 1.3rem;
+            border-radius: 8px;
             border: none;
-            background: #16a34a;
+            background: var(--hijau-tua);
             color: #fff;
             font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
+            transition: background 0.2s;
         }
 
         .btn-save:hover {
-            background: #15803d;
+            background: var(--hijau-gelap);
         }
 
         @media (max-width: 640px) {
@@ -359,12 +400,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             .form-container {
                 padding: 1.3rem;
             }
+
+            .topbar {
+                padding: 1rem;
+            }
         }
     </style>
 </head>
 
 <body>
 
+    <div class="topbar">
+        <img src="../assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam">
+        <span>Desa Teluk Dalam - Admin</span>
+    </div>
+
+    <div class="page-wrap">
     <div class="form-container">
         <div class="form-header">
             <h1><?= $title_page ?></h1>
@@ -497,6 +548,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </button>
             </div>
         </form>
+    </div>
     </div>
 
 </body>
