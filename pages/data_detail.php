@@ -1,17 +1,21 @@
 <?php
 session_start();
 require '../databases/connection.php'; // file koneksi database ($conn)
+include '../databases/model.php';
+include '../databases/data_output.php';
+include '../databases/data_input.php';
 
 if (!isset($conn)) {
     die("Koneksi database tidak tersedia.");
 }
+
 
 $mode = "tambah";
 $title_page = "Tambah Data Penduduk";
 $error = "";
 
 // Data default (kosong) untuk mode tambah
-$data = [
+$form_data_penduduk = [
     "id_penduduk" => "",
     "nik" => "",
     "nama_lengkap" => "",
@@ -19,14 +23,15 @@ $data = [
     "tanggal_lahir" => "",
     "jenis_kelamin" => "",
     "agama" => "",
-    "status_perkawinan" => "",
-    "pekerjaan" => "",
+    "" => "",
+    "pekestatus_perkawinanrjaan" => "",
     "pendidikan_terakhir" => "",
     "kewarganegaraan" => "",
-    "alamat_domisili" => "",
     "status_penduduk" => "Aktif",
     "nomor_kk" => "",
     "rt" => "",
+    "hubungan_keluarga" => "",
+    "alamat_domisili" => "",
 ];
 
 // ==========================
@@ -38,44 +43,30 @@ if (isset($_GET['id_penduduk']) && is_numeric($_GET['id_penduduk'])) {
     $id = (int) $_GET['id_penduduk'];
 
     // JOIN ke tabel keluarga supaya nomor_kk & rt ikut terambil
-    $stmt = mysqli_prepare($conn, "
-        SELECT p.*, k.nomor_kk, k.rt
-        FROM penduduk p
-        JOIN keluarga k ON p.id_keluarga_fk = k.id_keluarga
-        WHERE p.id_penduduk = ?
-    ");
-    mysqli_stmt_bind_param($stmt, "i", $id);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-
-    if ($row = mysqli_fetch_assoc($result)) {
-        $data = $row;
-    } else {
-        die("Data penduduk dengan ID tersebut tidak ditemukan.");
-    }
-    mysqli_stmt_close($stmt);
+    $form_data_penduduk = ambil_data_penduduk($conn, $id, $form_data_penduduk);
 }
 
 // ==========================
 // PROSES SIMPAN (TAMBAH/UPDATE)
 // ==========================
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nik               = trim($_POST['nik']);
-    $nama_lengkap      = trim($_POST['nama_lengkap']);
-    $tempat_lahir      = trim($_POST['tempat_lahir']);
-    $tanggal_lahir     = trim($_POST['tanggal_lahir']);
-    $jenis_kelamin     = trim($_POST['jenis_kelamin']);
-    $agama             = trim($_POST['agama']);
-    $status_perkawinan = trim($_POST['status_perkawinan']);
-    $pekerjaan         = trim($_POST['pekerjaan']);
-    $pendidikan        = trim($_POST['pendidikan_terakhir']);
-    $kewarganegaraan   = trim($_POST['kewarganegaraan']);
-    $alamat_domisili   = trim($_POST['alamat_domisili']);
-    $status_penduduk   = trim($_POST['status_penduduk']);
-    $post_mode         = trim($_POST['form_mode']);
 
-    $nomor_kk          = trim($_POST['nomor_kk']);
-    $rt                = trim($_POST['rt']);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $nik                 = trim($_POST['nik']);
+    $nama_lengkap        = trim($_POST['nama_lengkap']);
+    $tempat_lahir        = trim($_POST['tempat_lahir']);
+    $tanggal_lahir       = trim($_POST['tanggal_lahir']);
+    $jenis_kelamin       = trim($_POST['jenis_kelamin']);
+    $agama               = trim($_POST['agama']);
+    $status_perkawinan   = trim($_POST['status_perkawinan']);
+    $pekerjaan           = trim($_POST['pekerjaan']);
+    $pendidikan_terakhir = trim($_POST['pendidikan_terakhir']);
+    $kewarganegaraan     = trim($_POST['kewarganegaraan']);
+    $alamat_domisili     = trim($_POST['alamat_domisili']);
+    $status_penduduk     = trim($_POST['status_penduduk']);
+    $hubungan_keluarga   = trim($_POST['hubungan_keluarga']);
+    $post_mode           = trim($_POST['form_mode']);
+    $nomor_kk            = trim($_POST['nomor_kk']);
+    $rt                  = trim($_POST['rt']);
 
     if (strlen($nik) !== 16 || !ctype_digit($nik)) {
         $error = "NIK harus terdiri dari 16 digit angka.";
@@ -86,29 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // ==========================================
         // LANGKAH 1: CEK / SIAPKAN id_keluarga
         // ==========================================
-        $id_keluarga = null;
-
-        $stmtCek = mysqli_prepare($conn, "SELECT id_keluarga FROM keluarga WHERE nomor_kk = ?");
-        mysqli_stmt_bind_param($stmtCek, "s", $nomor_kk);
-        mysqli_stmt_execute($stmtCek);
-        $hasilCek = mysqli_stmt_get_result($stmtCek);
-
-        if ($rowKeluarga = mysqli_fetch_assoc($hasilCek)) {
-            // No. KK SUDAH ADA -> pakai id_keluarga yang sudah ada
-            $id_keluarga = $rowKeluarga['id_keluarga'];
-        } else {
-            // No. KK BELUM ADA -> insert dulu ke tabel keluarga
-            $stmtInsertKeluarga = mysqli_prepare($conn, "INSERT INTO keluarga (nomor_kk, rt) VALUES (?, ?)");
-            mysqli_stmt_bind_param($stmtInsertKeluarga, "ss", $nomor_kk, $rt);
-
-            if (mysqli_stmt_execute($stmtInsertKeluarga)) {
-                $id_keluarga = mysqli_insert_id($conn); // ambil id_keluarga yang baru dibuat
-            } else {
-                $error = "Gagal menyimpan data keluarga baru.";
-            }
-            mysqli_stmt_close($stmtInsertKeluarga);
-        }
-        mysqli_stmt_close($stmtCek);
+        $id_keluarga = cek_id_keluarga($conn, $nomor_kk, $rt, $alamat_domisili);
 
         // ==========================================
         // LANGKAH 2: INSERT / UPDATE ke tabel penduduk
@@ -117,25 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($post_mode === "edit") {
                 $post_id = (int) $_POST['id'];
-
-                $stmt = mysqli_prepare($conn, "UPDATE penduduk SET
-                        nik = ?,
-                        nama_lengkap = ?,
-                        tempat_lahir = ?,
-                        tanggal_lahir = ?,
-                        jenis_kelamin = ?,
-                        agama = ?,
-                        status_perkawinan = ?,
-                        pekerjaan = ?,
-                        pendidikan_terakhir = ?,
-                        kewarganegaraan = ?,
-                        alamat_domisili = ?,
-                        status_penduduk = ?
-                    WHERE id_penduduk = ?");
-
-                mysqli_stmt_bind_param(
-                    $stmt,
-                    "ssssssssssssi",
+                $stmt = edit_data_penduduk(
+                    $conn,
                     $nik,
                     $nama_lengkap,
                     $tempat_lahir,
@@ -144,22 +96,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $agama,
                     $status_perkawinan,
                     $pekerjaan,
-                    $pendidikan,
+                    $pendidikan_terakhir,
                     $kewarganegaraan,
-                    $alamat_domisili,
                     $status_penduduk,
+                    $hubungan_keluarga,
                     $post_id
                 );
             } else {
-                $stmt = mysqli_prepare($conn, "INSERT INTO penduduk (
-                        nik, nama_lengkap, tempat_lahir, tanggal_lahir,
-                        jenis_kelamin, agama, status_perkawinan, pekerjaan,
-                        pendidikan_terakhir, kewarganegaraan, alamat_domisili, status_penduduk, id_keluarga_fk
-                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
-
-                mysqli_stmt_bind_param(
-                    $stmt,
-                    "ssssssssssssi",
+                $stmt = tambah_data_penduduk(
+                    $conn,
                     $nik,
                     $nama_lengkap,
                     $tempat_lahir,
@@ -168,11 +113,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $agama,
                     $status_perkawinan,
                     $pekerjaan,
-                    $pendidikan,
+                    $pendidikan_terakhir,
                     $kewarganegaraan,
-                    $alamat_domisili,
                     $status_penduduk,
                     $id_keluarga,
+                    $hubungan_keluarga
                 );
             }
 
@@ -192,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Jika error, tampilkan ulang data yang diinput user (bukan dari DB)
     if (!empty($error)) {
-        $data = $_POST;
+        $form_data_penduduk = $_POST;
     }
 }
 ?>
@@ -378,37 +323,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form action="" method="POST">
             <input type="hidden" name="form_mode" value="<?= $mode ?>">
             <?php if ($mode === 'edit'): ?>
-                <input type="hidden" name="id" value="<?= htmlspecialchars($data['id_penduduk']) ?>">
+                <input type="hidden" name="id" value="<?= htmlspecialchars($form_data_penduduk['id_penduduk']) ?>">
             <?php endif; ?>
 
             <div class="form-grid">
 
-                <div class="form-group form-group-full">
+                <div class="form-group">
                     <label>Nomor Kartu Keluarga <span class="hint">(16 digit, harus unik)</span></label>
-                    <input type="text" name="nomor_kk" maxlength="16" pattern="\d{16}"
-                        value="<?= htmlspecialchars($data['nomor_kk']) ?>" required>
+                    <?php if ($mode == 'edit'): ?>
+                        <input type="text" name="nomor_kk" maxlength="16" pattern="\d{16}"
+                            value="<?= htmlspecialchars($form_data_penduduk['nomor_kk']) ?>" required readonly>
+
+                    <?php else: ?>
+                        <input type="text" name="nomor_kk" maxlength="16" pattern="\d{16}"
+                            value="<?= htmlspecialchars($form_data_penduduk['nomor_kk']) ?>" required>
+                    <?php endif; ?>
+                </div>
+
+                <div class="form-group">
+                    <label>Hubungan Dalam Keluarga </label>
+                    <input type="text" name="hubungan_keluarga"
+                        value="<?= htmlspecialchars($form_data_penduduk['hubungan_keluarga']) ?>" required>
                 </div>
 
                 <div class="form-group">
                     <label>Nomor Induk kependudukan (NIK)</label>
                     <input type="text" name="nik" maxlength="16" pattern="\d{16}"
-                        value="<?= htmlspecialchars($data['nik']) ?>" required>
+                        value="<?= htmlspecialchars($form_data_penduduk['nik']) ?>" required>
                 </div>
                 <div class="form-group">
                     <label>Nama Lengkap</label>
                     <input type="text" name="nama_lengkap" maxlength="100"
-                        value="<?= htmlspecialchars($data['nama_lengkap']) ?>" required>
+                        value="<?= htmlspecialchars($form_data_penduduk['nama_lengkap']) ?>" required>
                 </div>
 
                 <div class="form-group">
                     <label>Tempat Lahir</label>
                     <input type="text" name="tempat_lahir" maxlength="50"
-                        value="<?= htmlspecialchars($data['tempat_lahir']) ?>" required>
+                        value="<?= htmlspecialchars($form_data_penduduk['tempat_lahir']) ?>" required>
                 </div>
                 <div class="form-group">
                     <label>Tanggal Lahir</label>
                     <input type="date" name="tanggal_lahir"
-                        value="<?= htmlspecialchars($data['tanggal_lahir']) ?>" required>
+                        value="<?= htmlspecialchars($form_data_penduduk['tanggal_lahir']) ?>" required>
                 </div>
 
                 <div class="form-group">
@@ -416,7 +373,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <select name="jenis_kelamin" required>
                         <option value="">-- Pilih --</option>
                         <?php foreach (['Laki-laki', 'Perempuan'] as $opt): ?>
-                            <option value="<?= $opt ?>" <?= $data['jenis_kelamin'] === $opt ? 'selected' : '' ?>><?= $opt ?></option>
+                            <option value="<?= $opt ?>" <?= $form_data_penduduk['jenis_kelamin'] === $opt ? 'selected' : '' ?>><?= $opt ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -425,7 +382,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <select name="agama" required>
                         <option value="">-- Pilih --</option>
                         <?php foreach (['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Kepercayaan'] as $opt): ?>
-                            <option value="<?= $opt ?>" <?= $data['agama'] === $opt ? 'selected' : '' ?>><?= $opt ?></option>
+                            <option value="<?= $opt ?>" <?= $form_data_penduduk['agama'] === $opt ? 'selected' : '' ?>><?= $opt ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -435,14 +392,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <select name="status_perkawinan" required>
                         <option value="">-- Pilih --</option>
                         <?php foreach (['Belum Kawin', 'Kawin', 'Cerai Hidup', 'Cerai Mati'] as $opt): ?>
-                            <option value="<?= $opt ?>" <?= $data['status_perkawinan'] === $opt ? 'selected' : '' ?>><?= $opt ?></option>
+                            <option value="<?= $opt ?>" <?= $form_data_penduduk['status_perkawinan'] === $opt ? 'selected' : '' ?>><?= $opt ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Pekerjaan</label>
                     <input type="text" name="pekerjaan" maxlength="100"
-                        value="<?= htmlspecialchars($data['pekerjaan']) ?>" required>
+                        value="<?= htmlspecialchars($form_data_penduduk['pekerjaan']) ?>" required>
                 </div>
 
                 <div class="form-group">
@@ -450,7 +407,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <select name="pendidikan_terakhir" required>
                         <option value="">-- Pilih --</option>
                         <?php foreach (['Tidak Sekolah', 'SD', 'SMP', 'SMA/SMK', 'Diploma', 'S1', 'S2', 'S3'] as $opt): ?>
-                            <option value="<?= $opt ?>" <?= $data['pendidikan_terakhir'] === $opt ? 'selected' : '' ?>><?= $opt ?></option>
+                            <option value="<?= $opt ?>" <?= $form_data_penduduk['pendidikan_terakhir'] === $opt ? 'selected' : '' ?>><?= $opt ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -458,36 +415,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label>Kewarganegaraan</label>
                     <select name="kewarganegaraan" required>
                         <?php foreach (['WNI', 'WNA'] as $opt): ?>
-                            <option value="<?= $opt ?>" <?= $data['kewarganegaraan'] === $opt ? 'selected' : '' ?>><?= $opt ?></option>
+                            <option value="<?= $opt ?>" <?= $form_data_penduduk['kewarganegaraan'] === $opt ? 'selected' : '' ?>><?= $opt ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label>Alamat Domisili</label>
-                    <input type="text" name="alamat_domisili" maxlength="255"
-                        value="<?= htmlspecialchars($data['alamat_domisili']) ?>" required>
+                    <?php if ($mode == 'edit'): ?>
+                        <input type="text" name="alamat_domisili" maxlength="255"
+                            value="<?= htmlspecialchars($form_data_penduduk['alamat_domisili']) ?>" required readonly>
+                    <?php else: ?>
+                        <input type="text" name="alamat_domisili" maxlength="255"
+                            value="<?= htmlspecialchars($form_data_penduduk['alamat_domisili']) ?>" required>
+                    <?php endif; ?>
                 </div>
 
                 <div class="form-group">
                     <label>RT</label>
-                    <select name="rt" required>
-                        <option value="">-- Pilih --</option>
-                        <?php foreach (['001', '002', '003', '004'] as $opt): ?>
-                            <option value="<?= $opt ?>" <?= $data['rt'] === $opt ? 'selected' : '' ?>><?= $opt ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <?php if ($mode == 'edit'): ?>
+                        <input type="text" name="rt" maxlength="3"
+                            value="<?= htmlspecialchars($form_data_penduduk['rt']) ?>" required readonly>
+                    <?php else: ?>
+                        <input type="text" name="rt" maxlength="3"
+                            value="<?= htmlspecialchars($form_data_penduduk['rt']) ?>" required>
+                    <?php endif; ?>
                 </div>
 
                 <div class="form-group form-group-full">
                     <label>Status Penduduk</label>
                     <select name="status_penduduk" required>
                         <?php foreach (['Aktif', 'Pindah', 'Meninggal'] as $opt): ?>
-                            <option value="<?= $opt ?>" <?= $data['status_penduduk'] === $opt ? 'selected' : '' ?>><?= $opt ?></option>
+                            <option value="<?= $opt ?>" <?= $form_data_penduduk['status_penduduk'] === $opt ? 'selected' : '' ?>><?= $opt ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-
             </div>
 
             <div class="form-footer">

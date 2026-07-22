@@ -25,9 +25,9 @@ $query = "
         p.pekerjaan,
         p.pendidikan_terakhir,
         p.kewarganegaraan,
-        p.alamat_domisili,
         p.status_penduduk,
-        k.rt
+        k.rt,
+        k.alamat_domisili
     FROM penduduk p
     JOIN keluarga k ON p.id_keluarga_fk = k.id_keluarga
     ORDER BY p.id_penduduk DESC
@@ -48,7 +48,7 @@ if ($result) {
 // PERHITUNGAN STATISTIK
 // ==========================
 $total_penduduk  = count($data_penduduk);
-$total_kk        = count(array_unique(array_column($data_penduduk, 'no_kk')));
+$total_kk        = count(array_unique(array_column($data_penduduk, 'nomor_kk')));
 $total_laki      = count(array_filter($data_penduduk, fn($p) => $p['jenis_kelamin'] === 'Laki-laki'));
 $total_perempuan = count(array_filter($data_penduduk, fn($p) => $p['jenis_kelamin'] === 'Perempuan'));
 ?>
@@ -183,7 +183,7 @@ $total_perempuan = count(array_filter($data_penduduk, fn($p) => $p['jenis_kelami
                 <div class="value"><?= $total_penduduk ?></div>
             </div>
             <div class="stat-card kk">
-                <div class="label">Total Kepala Keluarga</div>
+                <div class="label">Total Keluarga</div>
                 <div class="value"><?= $total_kk ?></div>
             </div>
             <div class="stat-card laki">
