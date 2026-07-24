@@ -108,3 +108,24 @@ function tambah_data_keluarga($conn, string $nomor_kk, string $rt, string $alama
     }
     mysqli_stmt_close($stmtInsertKeluarga);
 }
+
+function edit_data_keluarga($conn, string $nomor_kk, string $rt, string $alamat_domisili, int $id_keluarga)
+{
+    $stmt = mysqli_prepare($conn, "UPDATE keluarga SET nomor_kk = ?, rt = ?, alamat_domisili = ? WHERE id_keluarga = ?");
+    mysqli_stmt_bind_param($stmt, "sssi", $nomor_kk, $rt, $alamat_domisili, $id_keluarga);
+    return $stmt;
+}
+
+function hapus_data_penduduk($conn, int $id_penduduk)
+{
+    $stmt = mysqli_prepare($conn, "DELETE FROM penduduk WHERE id_penduduk = ?");
+    mysqli_stmt_bind_param($stmt, "i", $id_penduduk);
+    return $stmt;
+}
+
+function hapus_data_keluarga($conn, int $id_keluarga)
+{
+    $stmt = mysqli_prepare($conn, "DELETE FROM keluarga WHERE id_keluarga = ?");
+    mysqli_stmt_bind_param($stmt, "i", $id_keluarga);
+    return $stmt;
+}

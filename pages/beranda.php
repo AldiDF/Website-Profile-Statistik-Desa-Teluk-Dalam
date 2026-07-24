@@ -15,17 +15,11 @@
   <header>
     <nav>
       <div class="brand">
-        <svg width="42" height="42" viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg" style="background:white;border-radius:50%;padding:2px;">
-          <circle cx="21" cy="21" r="19" fill="#0f4c3a" stroke="#f4b400" stroke-width="2"/>
-          <path d="M21 9 L31 18 V32 H11 V18 Z" fill="#f4b400"/>
-          <rect x="18" y="23" width="6" height="9" fill="#0f4c3a"/>
-        </svg>
+        <img src="../assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam">
         <h1>Desa Teluk Dalam</h1>
       </div>
       <ul>
         <li><a href="#">Beranda</a></li>
-        <li><a href="#berita">Berita</a></li>
-        <li><a href="#potensi">Potensi</a></li>
         <li><a href="#profil">Profil Desa</a></li>
         <li><a href="#statistik">Statistik Desa</a></li>
         <li><a href="login.php">Masuk</a></li>
@@ -120,61 +114,6 @@
         </div>
         <div style="position:relative; width:100%; height:260px;">
           <canvas id="statusChart" role="img" aria-label="Diagram batang perbandingan penduduk tetap 2925 jiwa dan tidak tetap 325 jiwa">Penduduk tetap 2925, tidak tetap 325</canvas>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="potensi">
-    <div class="section-title">
-      <h3>Potensi Desa</h3>
-      <p>Sumber daya dan unggulan yang dimiliki Desa Teluk Dalam.</p>
-    </div>
-
-    <div class="cards">
-      <div class="card">
-        <h4>Perikanan</h4>
-        <p>Potensi tambak dan hasil laut di kawasan Teluk Dalam.</p>
-      </div>
-      <div class="card">
-        <h4>Pariwisata</h4>
-        <p>Keindahan alam dan budaya lokal yang menarik untuk dikembangkan.</p>
-      </div>
-      <div class="card">
-        <h4>UMKM</h4>
-        <p>Usaha mikro warga seperti kerajinan dan olahan makanan khas desa.</p>
-      </div>
-    </div>
-  </section>
-
-  <section id="berita">
-    <div class="section-title">
-      <h3>Berita Terkini</h3>
-      <p>Informasi terbaru dari Desa Teluk Dalam.</p>
-    </div>
-
-    <div class="news">
-      <div class="news-card">
-        <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=1200&auto=format&fit=crop" alt="Berita" />
-        <div class="content">
-          <h4>Gotong Royong Bersama Warga</h4>
-          <p>Kegiatan gotong royong dilaksanakan untuk menjaga kebersihan lingkungan desa.</p>
-        </div>
-      </div>
-
-      <div class="news-card">
-        <img src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1200&auto=format&fit=crop" alt="Berita" />
-        <div class="content">
-          <h4>Pelatihan UMKM Desa</h4>
-          <p>Pemerintah desa mengadakan pelatihan untuk meningkatkan keterampilan pelaku UMKM.</p>
-        </div>
-      </div>
-
-      <div class="news-card">
-        <img src="https://images.unsplash.com/photo-1494526585095-c41746248156?q=80&w=1200&auto=format&fit=crop" alt="Berita" />
-        <div class="content">
-          <h4>Pembangunan Jalan Desa</h4>
-          <p>Proyek pembangunan jalan desa mulai dilaksanakan untuk memperlancar akses warga.</p>
         </div>
       </div>
     </div>

@@ -17,6 +17,29 @@ function cek_id_keluarga($conn,$nomor_kk, $rt, $alamat_domisili) {
     return $id_keluarga;
 }
 
+function ambil_data_keluarga($conn, int $id_keluarga) {
+    $stmt = mysqli_prepare($conn, "SELECT * FROM keluarga WHERE id_keluarga = ?");
+    mysqli_stmt_bind_param($stmt, "i", $id_keluarga);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($result);
+    mysqli_stmt_close($stmt);
+    return $row ?: null;
+}
+
+function ambil_anggota_keluarga($conn, int $id_keluarga) {
+    $stmt = mysqli_prepare($conn, "SELECT * FROM penduduk WHERE id_keluarga_fk = ? ORDER BY id_penduduk ASC");
+    mysqli_stmt_bind_param($stmt, "i", $id_keluarga);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $anggota = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $anggota[] = $row;
+    }
+    mysqli_stmt_close($stmt);
+    return $anggota;
+}
+
 function ambil_data_penduduk($conn, $id, $form_data_penduduk) {
     $stmt = mysqli_prepare($conn, "
         SELECT p.*, k.nomor_kk, k.rt, k.alamat_domisili
