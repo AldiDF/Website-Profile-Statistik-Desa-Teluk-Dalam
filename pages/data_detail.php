@@ -1,7 +1,6 @@
 <?php
-session_start();
+require '../databases/auth_check.php';
 require '../databases/connection.php';
-include '../databases/model.php';
 include '../databases/data_output.php';
 include '../databases/data_input.php';
 
@@ -32,7 +31,7 @@ $anggota_kosong = [
     "pekerjaan"           => "",
     "pendidikan_terakhir" => "",
     "kewarganegaraan"     => "",
-    "status_penduduk"     => "Aktif",
+    "status_penduduk"     => "PERMANEN",
     "hubungan_keluarga"   => "",
 ];
 
@@ -57,23 +56,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_keluarga = isset($_POST['id_keluarga']) && is_numeric($_POST['id_keluarga']) ? (int) $_POST['id_keluarga'] : null;
     $original_ids = $_POST['original_ids'] ?? '';
 
-    $keluarga['nomor_kk']        = trim($_POST['nomor_kk'] ?? '');
-    $keluarga['rt']              = trim($_POST['rt'] ?? '');
-    $keluarga['alamat_domisili'] = trim($_POST['alamat_domisili'] ?? '');
+    $keluarga['nomor_kk']        = bersihkan_input($_POST['nomor_kk'] ?? '');
+    $keluarga['rt']              = bersihkan_input($_POST['rt'] ?? '');
+    $keluarga['alamat_domisili'] = bersihkan_input($_POST['alamat_domisili'] ?? '');
 
-    $niks               = $_POST['nik'] ?? [];
-    $namas              = $_POST['nama_lengkap'] ?? [];
-    $tempat_lahirs      = $_POST['tempat_lahir'] ?? [];
-    $tanggal_lahirs     = $_POST['tanggal_lahir'] ?? [];
-    $jenis_kelamins     = $_POST['jenis_kelamin'] ?? [];
-    $agamas             = $_POST['agama'] ?? [];
-    $status_perkawinans = $_POST['status_perkawinan'] ?? [];
-    $pekerjaans         = $_POST['pekerjaan'] ?? [];
-    $pendidikans        = $_POST['pendidikan_terakhir'] ?? [];
-    $kewarganegaraans   = $_POST['kewarganegaraan'] ?? [];
-    $status_penduduks   = $_POST['status_penduduk'] ?? [];
-    $hubungans          = $_POST['hubungan_keluarga'] ?? [];
-    $id_penduduks       = $_POST['id_penduduk'] ?? [];
+    $niks               = bersihkan_input_array($_POST['nik'] ?? []);
+    $namas              = bersihkan_input_array($_POST['nama_lengkap'] ?? []);
+    $tempat_lahirs      = bersihkan_input_array($_POST['tempat_lahir'] ?? []);
+    $tanggal_lahirs     = bersihkan_input_array($_POST['tanggal_lahir'] ?? []);
+    $jenis_kelamins     = bersihkan_input_array($_POST['jenis_kelamin'] ?? []);
+    $agamas             = bersihkan_input_array($_POST['agama'] ?? []);
+    $status_perkawinans = bersihkan_input_array($_POST['status_perkawinan'] ?? []);
+    $pekerjaans         = bersihkan_input_array($_POST['pekerjaan'] ?? []);
+    $pendidikans        = bersihkan_input_array($_POST['pendidikan_terakhir'] ?? []);
+    $kewarganegaraans   = bersihkan_input_array($_POST['kewarganegaraan'] ?? []);
+    $status_penduduks   = bersihkan_input_array($_POST['status_penduduk'] ?? []);
+    $hubungans          = bersihkan_input_array($_POST['hubungan_keluarga'] ?? []);
+    $id_penduduks       = bersihkan_input_array($_POST['id_penduduk'] ?? []);
 
     // Susun ulang $anggota_list supaya kalau ada error, form tetap terisi
     foreach ($niks as $i => $v) {
@@ -279,6 +278,25 @@ function opsi_select($nama_opsi, $daftar, $terpilih)
     return $html;
 }
 
+/**
+ * Membersihkan 1 nilai string: trim, hapus spasi ganda, uppercase.
+ */
+function bersihkan_input(string $value): string
+{
+    $value = trim($value);
+    $value = preg_replace('/\s+/', ' ', $value); // banyak spasi -> 1 spasi
+    $value = strtoupper($value);
+    return $value;
+}
+
+/**
+ * Membersihkan array of string (misal $_POST['nama_lengkap'] yang berupa array).
+ */
+function bersihkan_input_array(array $values): array
+{
+    return array_map('bersihkan_input', $values);
+}
+
 function render_anggota_block($a, $nomor)
 {
     ob_start();
@@ -297,13 +315,13 @@ function render_anggota_block($a, $nomor)
             </div>
             <div class="form-group">
                 <label>Nomor Induk Kependudukan</label>
-                <input type="text" name="nik[]" maxlength="16" pattern="\d{16}" value="<?= htmlspecialchars($a['nik'] ?? '') ?>" required>
+                <input type="text" name="nik[]" maxlength="16" pattern="\d{16}" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="<?= htmlspecialchars($a['nik'] ?? '') ?>" required>
             </div>
             <div class="form-group">
                 <label>Jenis Kelamin</label>
                 <select name="jenis_kelamin[]" required>
                     <option value="">-- Pilih --</option>
-                    <?= opsi_select('jenis_kelamin', ['Laki-laki', 'Perempuan'], $a['jenis_kelamin'] ?? '') ?>
+                    <?= opsi_select('jenis_kelamin', ['LAKI-LAKI', 'PEREMPUAN'], $a['jenis_kelamin'] ?? '') ?>
                 </select>
             </div>
 
@@ -319,7 +337,14 @@ function render_anggota_block($a, $nomor)
                 <label>Agama</label>
                 <select name="agama[]" required>
                     <option value="">-- Pilih --</option>
-                    <?= opsi_select('agama', ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Kepercayaan'], $a['agama'] ?? '') ?>
+                    <?= opsi_select('agama', [
+                        'ISLAM',
+                        'KRISTEN',
+                        'KATOLIK',
+                        'HINDU',
+                        'BUDDHA',
+                        'KONGHUCU',
+                    ], $a['agama'] ?? '') ?>
                 </select>
             </div>
 
@@ -327,7 +352,18 @@ function render_anggota_block($a, $nomor)
                 <label>Pendidikan Terakhir</label>
                 <select name="pendidikan_terakhir[]" required>
                     <option value="">-- Pilih --</option>
-                    <?= opsi_select('pendidikan_terakhir', ['Tidak Sekolah', 'SD', 'SMP', 'SMA/SMK', 'Diploma', 'S1', 'S2', 'S3'], $a['pendidikan_terakhir'] ?? '') ?>
+                    <?= opsi_select('pendidikan_terakhir', [
+                        'TIDAK SEKOLAH',
+                        'SD/SEDERAJAT',
+                        'SLTP/SEDERAJAT',
+                        'SLTA/SEDERAJAT',
+                        'DIPLOMA I',
+                        'DIPLOMA II',
+                        'DIPLOMA III',
+                        'DIPLOMA IV/STRATA I',
+                        'STRATA II',
+                        'STRATA III'
+                    ], $a['pendidikan_terakhir'] ?? '') ?>
                 </select>
             </div>
             <div class="form-group">
@@ -338,14 +374,18 @@ function render_anggota_block($a, $nomor)
                 <label>Status Perkawinan</label>
                 <select name="status_perkawinan[]" required>
                     <option value="">-- Pilih --</option>
-                    <?= opsi_select('status_perkawinan', ['Belum Kawin', 'Kawin', 'Cerai Hidup', 'Cerai Mati'], $a['status_perkawinan'] ?? '') ?>
+                    <?= opsi_select('status_perkawinan', ['BELUM KAWIN', 'KAWIN', 'CERAI HIDUP', 'CERAI MATI'], $a['status_perkawinan'] ?? '') ?>
                 </select>
             </div>
 
             <div class="form-group">
                 <label>Status Hubungan Dalam Keluarga</label>
-                <input type="text" name="hubungan_keluarga[]" value="<?= htmlspecialchars($a['hubungan_keluarga'] ?? '') ?>" required>
+                <select name="hubungan_keluarga[]" required>
+                    <option value="">-- Pilih --</option>
+                    <?= opsi_select('hubungan_keluarga', ['KEPALA KELUARGA', 'SUAMI', 'ISTRI', 'ANAK', 'CUCU', 'ORANG TUA', 'MERTUA', 'MENANTU', 'SAUDARA', 'FAMILI LAIN'], $a['hubungan_keluarga'] ?? '') ?>
+                </select>
             </div>
+
             <div class="form-group">
                 <label>Kewarganegaraan</label>
                 <select name="kewarganegaraan[]" required>
@@ -355,7 +395,7 @@ function render_anggota_block($a, $nomor)
             <div class="form-group">
                 <label>Status Penduduk</label>
                 <select name="status_penduduk[]" required>
-                    <?= opsi_select('status_penduduk', ['Aktif', 'Pindah', 'Meninggal'], $a['status_penduduk'] ?? 'Aktif') ?>
+                    <?= opsi_select('status_penduduk', ['PERMANEN', 'NON PERMANEN', 'MENINGGAL'], $a['status_penduduk'] ?? 'Aktif') ?>
                 </select>
             </div>
         </div>
@@ -364,6 +404,7 @@ function render_anggota_block($a, $nomor)
     return ob_get_clean();
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 
@@ -384,8 +425,17 @@ function render_anggota_block($a, $nomor)
             --bg: #f6f5f1;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', 'Segoe UI', Arial, sans-serif; }
-        body { background: var(--bg); color: #2b2b28; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: #2b2b28;
+        }
 
         .topbar {
             background: var(--hijau-tua);
@@ -394,13 +444,29 @@ function render_anggota_block($a, $nomor)
             display: flex;
             align-items: center;
             gap: 0.7rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         }
-        .topbar img { width: 35px; height: 40px; border-radius: 50%; display: block; }
-        .topbar span { font-size: 1rem; font-weight: 600; }
 
-        .page-wrap { padding: 2rem 1rem; }
-        .form-container { max-width: 900px; margin: 0 auto; }
+        .topbar img {
+            width: 35px;
+            height: 40px;
+            border-radius: 50%;
+            display: block;
+        }
+
+        .topbar span {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .page-wrap {
+            padding: 2rem 1rem;
+        }
+
+        .form-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
 
         .card {
             background: #fff;
@@ -420,7 +486,12 @@ function render_anggota_block($a, $nomor)
             padding-bottom: 1rem;
             border-bottom: 1px solid var(--border-soft);
         }
-        .form-header h1 { font-size: 1.3rem; font-weight: 600; color: var(--hijau-tua); }
+
+        .form-header h1 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--hijau-tua);
+        }
 
         .badge-mode {
             font-size: 0.75rem;
@@ -428,8 +499,16 @@ function render_anggota_block($a, $nomor)
             padding: 0.3rem 0.8rem;
             border-radius: 12px;
         }
-        .badge-mode.tambah { background: rgba(15, 76, 58, 0.1); color: var(--hijau-tua); }
-        .badge-mode.edit { background: rgba(244, 180, 0, 0.18); color: #a16207; }
+
+        .badge-mode.tambah {
+            background: rgba(15, 76, 58, 0.1);
+            color: var(--hijau-tua);
+        }
+
+        .badge-mode.edit {
+            background: rgba(244, 180, 0, 0.18);
+            color: #a16207;
+        }
 
         .alert-error {
             background: #fee2e2;
@@ -452,7 +531,10 @@ function render_anggota_block($a, $nomor)
             grid-template-columns: 1fr 1fr 1fr;
             gap: 1.1rem;
         }
-        .form-group-full { grid-column: 1 / -1; }
+
+        .form-group-full {
+            grid-column: 1 / -1;
+        }
 
         .form-group label {
             display: block;
@@ -461,9 +543,15 @@ function render_anggota_block($a, $nomor)
             margin-bottom: 0.35rem;
             font-weight: 600;
         }
-        .form-group .hint { font-weight: 400; color: var(--abu-teks); font-size: 0.75rem; }
 
-        .form-group input, .form-group select {
+        .form-group .hint {
+            font-weight: 400;
+            color: var(--abu-teks);
+            font-size: 0.75rem;
+        }
+
+        .form-group input,
+        .form-group select {
             width: 100%;
             padding: 0.65rem 0.8rem;
             border: 1.5px solid var(--border-soft);
@@ -473,7 +561,9 @@ function render_anggota_block($a, $nomor)
             color: #2b2b28;
             background: #fff;
         }
-        .form-group input:focus, .form-group select:focus {
+
+        .form-group input:focus,
+        .form-group select:focus {
             outline: none;
             border-color: var(--emas);
             box-shadow: 0 0 0 3px rgba(244, 180, 0, 0.18);
@@ -485,7 +575,10 @@ function render_anggota_block($a, $nomor)
             padding: 1.2rem;
             margin-bottom: 1.2rem;
         }
-        .anggota-block:last-child { margin-bottom: 0; }
+
+        .anggota-block:last-child {
+            margin-bottom: 0;
+        }
 
         .anggota-block-header {
             display: flex;
@@ -493,7 +586,12 @@ function render_anggota_block($a, $nomor)
             align-items: center;
             margin-bottom: 1rem;
         }
-        .anggota-block-header h3 { font-size: 0.95rem; color: var(--hijau-tua); font-weight: 600; }
+
+        .anggota-block-header h3 {
+            font-size: 0.95rem;
+            color: var(--hijau-tua);
+            font-weight: 600;
+        }
 
         .btn-hapus-block {
             background: none;
@@ -505,7 +603,10 @@ function render_anggota_block($a, $nomor)
             border-radius: 6px;
             cursor: pointer;
         }
-        .btn-hapus-block:hover { background: #fee2e2; }
+
+        .btn-hapus-block:hover {
+            background: #fee2e2;
+        }
 
         .btn-tambah-anggota {
             width: 100%;
@@ -520,7 +621,10 @@ function render_anggota_block($a, $nomor)
             cursor: pointer;
             margin-top: 0.5rem;
         }
-        .btn-tambah-anggota:hover { background: #0a2f24; }
+
+        .btn-tambah-anggota:hover {
+            background: #0a2f24;
+        }
 
         .form-footer {
             display: flex;
@@ -528,6 +632,7 @@ function render_anggota_block($a, $nomor)
             gap: 0.7rem;
             margin-top: 1.2rem;
         }
+
         .form-footer .btn-hapus-kk {
             margin-right: auto;
         }
@@ -545,7 +650,10 @@ function render_anggota_block($a, $nomor)
             display: inline-flex;
             align-items: center;
         }
-        .btn-hapus-kk:hover { background: #fee2e2; }
+
+        .btn-hapus-kk:hover {
+            background: #fee2e2;
+        }
 
         .btn-cancel {
             padding: 0.75rem 1.3rem;
@@ -560,7 +668,10 @@ function render_anggota_block($a, $nomor)
             display: inline-flex;
             align-items: center;
         }
-        .btn-cancel:hover { background: #f6f5f1; }
+
+        .btn-cancel:hover {
+            background: #f6f5f1;
+        }
 
         .btn-save {
             flex: 1;
@@ -575,12 +686,23 @@ function render_anggota_block($a, $nomor)
             font-weight: 600;
             cursor: pointer;
         }
-        .btn-save:hover { background: var(--hijau-gelap); }
+
+        .btn-save:hover {
+            background: var(--hijau-gelap);
+        }
 
         @media (max-width: 720px) {
-            .form-grid { grid-template-columns: 1fr; }
-            .card { padding: 1.3rem; }
-            .topbar { padding: 1rem; }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 1.3rem;
+            }
+
+            .topbar {
+                padding: 1rem;
+            }
         }
     </style>
 </head>
@@ -593,69 +715,69 @@ function render_anggota_block($a, $nomor)
     </div>
 
     <div class="page-wrap">
-    <div class="form-container">
+        <div class="form-container">
 
-        <form action="" method="POST" id="familyForm">
-            <input type="hidden" name="form_mode" value="<?= $mode ?>">
-            <?php if ($mode === 'edit'): ?>
-                <input type="hidden" name="id_keluarga" value="<?= htmlspecialchars((string) $id_keluarga) ?>">
-                <input type="hidden" name="original_ids" value="<?= htmlspecialchars($original_ids) ?>">
-            <?php endif; ?>
-
-            <div class="card">
-                <div class="form-header">
-                    <h1><?= $title_page ?></h1>
-                    <span class="badge-mode <?= $mode ?>"><?= $mode === 'edit' ? 'Mode Edit' : 'Mode Tambah' ?></span>
-                </div>
-
-                <?php if (!empty($error)): ?>
-                    <div class="alert-error"><?= htmlspecialchars($error) ?></div>
-                <?php endif; ?>
-
-                <p class="section-title">Data Keluarga</p>
-                <div class="form-grid">
-                    <div class="form-group form-group-full">
-                        <label>Nomor Kartu Keluarga <span class="hint">(16 digit, harus unik)</span></label>
-                        <input type="text" name="nomor_kk" maxlength="16" pattern="\d{16}" value="<?= htmlspecialchars($keluarga['nomor_kk']) ?>" required>
-                    </div>
-                    <div class="form-group">
-                        <label>RT</label>
-                        <input type="text" name="rt" maxlength="3" value="<?= htmlspecialchars($keluarga['rt']) ?>" required>
-                    </div>
-                    <div class="form-group form-group-full">
-                        <label>Alamat Domisili</label>
-                        <input type="text" name="alamat_domisili" maxlength="255" value="<?= htmlspecialchars($keluarga['alamat_domisili']) ?>" required>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <p class="section-title">Anggota Keluarga</p>
-                <div id="anggotaContainer">
-                    <?php foreach ($anggota_list as $i => $a): ?>
-                        <?= render_anggota_block($a, $i + 1) ?>
-                    <?php endforeach; ?>
-                </div>
-
-                <button type="button" class="btn-tambah-anggota" id="btnTambahAnggota">+ Tambah Anggota Keluarga</button>
-            </div>
-
-            <div class="form-footer">
+            <form action="" method="POST" id="familyForm">
+                <input type="hidden" name="form_mode" value="<?= $mode ?>">
                 <?php if ($mode === 'edit'): ?>
-                    <a href="delete.php?id_keluarga=<?= htmlspecialchars((string) $id_keluarga) ?>"
-                        class="btn-hapus-kk"
-                        onclick="return confirm('Yakin ingin menghapus seluruh KK ini beserta SEMUA anggotanya? Tindakan ini tidak bisa dibatalkan.')">
-                        Hapus KK
-                    </a>
+                    <input type="hidden" name="id_keluarga" value="<?= htmlspecialchars((string) $id_keluarga) ?>">
+                    <input type="hidden" name="original_ids" value="<?= htmlspecialchars($original_ids) ?>">
                 <?php endif; ?>
-                <a href="dashboard.php" class="btn-cancel">Batal</a>
-                <button type="submit" class="btn-save">
-                    <?= $mode === 'edit' ? 'Update Data' : 'Konfirmasi Penambahan Data' ?>
-                </button>
-            </div>
-        </form>
 
-    </div>
+                <div class="card">
+                    <div class="form-header">
+                        <h1><?= $title_page ?></h1>
+                        <span class="badge-mode <?= $mode ?>"><?= $mode === 'edit' ? 'Mode Edit' : 'Mode Tambah' ?></span>
+                    </div>
+
+                    <?php if (!empty($error)): ?>
+                        <div class="alert-error"><?= htmlspecialchars($error) ?></div>
+                    <?php endif; ?>
+
+                    <p class="section-title">Data Keluarga</p>
+                    <div class="form-grid">
+                        <div class="form-group form-group-full">
+                            <label>Nomor Kartu Keluarga <span class="hint">(16 digit, harus unik)</span></label>
+                            <input type="text" name="nomor_kk" maxlength="16" pattern="\d{16}" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="<?= htmlspecialchars($keluarga['nomor_kk']) ?>" required>
+                        </div>
+                        <div class="form-group">
+                            <label>RT</label>
+                            <input type="text" name="rt" maxlength="3" pattern="\d{3}" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="<?= htmlspecialchars($keluarga['rt']) ?>" required>
+                        </div>
+                        <div class="form-group form-group-full">
+                            <label>Alamat Domisili</label>
+                            <input type="text" name="alamat_domisili" maxlength="255" value="<?= htmlspecialchars($keluarga['alamat_domisili']) ?>" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <p class="section-title">Anggota Keluarga</p>
+                    <div id="anggotaContainer">
+                        <?php foreach ($anggota_list as $i => $a): ?>
+                            <?= render_anggota_block($a, $i + 1) ?>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <button type="button" class="btn-tambah-anggota" id="btnTambahAnggota">+ Tambah Anggota Keluarga</button>
+                </div>
+
+                <div class="form-footer">
+                    <?php if ($mode === 'edit'): ?>
+                        <a href="delete.php?id_keluarga=<?= htmlspecialchars((string) $id_keluarga) ?>"
+                            class="btn-hapus-kk"
+                            onclick="return confirm('Yakin ingin menghapus seluruh KK ini beserta SEMUA anggotanya? Tindakan ini tidak bisa dibatalkan.')">
+                            Hapus KK
+                        </a>
+                    <?php endif; ?>
+                    <a href="dashboard.php" class="btn-cancel">Batal</a>
+                    <button type="submit" class="btn-save">
+                        <?= $mode === 'edit' ? 'Update Data' : 'Konfirmasi Penambahan Data' ?>
+                    </button>
+                </div>
+            </form>
+
+        </div>
     </div>
 
     <script>
@@ -692,14 +814,14 @@ function render_anggota_block($a, $nomor)
                     </div>
                     <div class="form-group">
                         <label>Nomor Induk Kependudukan</label>
-                        <input type="text" name="nik[]" maxlength="16" pattern="\\d{16}" required>
+                        <input type="text" name="nik[]" maxlength="16" pattern="\\d{16}" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
                     </div>
                     <div class="form-group">
                         <label>Jenis Kelamin</label>
                         <select name="jenis_kelamin[]" required>
                             <option value="">-- Pilih --</option>
-                            <option value="Laki-laki">Laki-laki</option>
-                            <option value="Perempuan">Perempuan</option>
+                            <option value="LAKI-LAKI">LAKI-LAKI</option>
+                            <option value="PEREMPUAN">PEREMPUAN</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -714,27 +836,28 @@ function render_anggota_block($a, $nomor)
                         <label>Agama</label>
                         <select name="agama[]" required>
                             <option value="">-- Pilih --</option>
-                            <option value="Islam">Islam</option>
-                            <option value="Kristen">Kristen</option>
-                            <option value="Katolik">Katolik</option>
-                            <option value="Hindu">Hindu</option>
-                            <option value="Buddha">Buddha</option>
-                            <option value="Konghucu">Konghucu</option>
-                            <option value="Kepercayaan">Kepercayaan</option>
+                            <option value="ISLAM">ISLAM</option>
+                            <option value="KRISTEN">KRISTEN</option>
+                            <option value="KATOLIK">KATOLIK</option>
+                            <option value="HINDU">HINDU</option>
+                            <option value="BUDDHA">BUDDHA</option>
+                            <option value="KONGHUCU">KONGHUCU</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Pendidikan Terakhir</label>
                         <select name="pendidikan_terakhir[]" required>
                             <option value="">-- Pilih --</option>
-                            <option value="Tidak Sekolah">Tidak Sekolah</option>
-                            <option value="SD">SD</option>
-                            <option value="SMP">SMP</option>
-                            <option value="SMA/SMK">SMA/SMK</option>
-                            <option value="Diploma">Diploma</option>
-                            <option value="S1">S1</option>
-                            <option value="S2">S2</option>
-                            <option value="S3">S3</option>
+                            <option value="TIDAK SEKOLAH">TIDAK SEKOLAH</option>
+                            <option value="SD/SEDERAJAT">SD/SEDERAJAT</option>
+                            <option value="SLTP/SEDERAJAT">SLTP/SEDERAJAT</option>
+                            <option value="SLTA/SEDERAJAT">SLTA/SEDERAJAT</option>
+                            <option value="DIPLOMA I">DIPLOMA I</option>
+                            <option value="DIPLOMA II">DIPLOMA II</option>
+                            <option value="DIPLOMA III">DIPLOMA III</option>
+                            <option value="DIPLOMA IV/STRATA I">DIPLOMA IV/STRATA I</option>
+                            <option value="STRATA II">STRATA II</option>
+                            <option value="STRATA III">STRATA III</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -745,15 +868,26 @@ function render_anggota_block($a, $nomor)
                         <label>Status Perkawinan</label>
                         <select name="status_perkawinan[]" required>
                             <option value="">-- Pilih --</option>
-                            <option value="Belum Kawin">Belum Kawin</option>
-                            <option value="Kawin">Kawin</option>
-                            <option value="Cerai Hidup">Cerai Hidup</option>
-                            <option value="Cerai Mati">Cerai Mati</option>
+                            <option value="BELUM KAWIN">BELUM KAWIN</option>
+                            <option value="KAWIN">KAWIN</option>
+                            <option value="CERAI HIDUP">CERAI HIDUP</option>
+                            <option value="CERAI MATI">CERAI MATI</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Status Hubungan Dalam Keluarga</label>
-                        <input type="text" name="hubungan_keluarga[]" required>
+                        <select name="hubungan_keluarga[]" required>
+                            <option value="KEPALA KELUARGA">KEPALA KELUARGA</option>
+                            <option value="SUAMI">SUAMI</option>
+                            <option value="ISTRI">ISTRI</option>
+                            <option value="ANAK">ANAK</option>
+                            <option value="MENANTU">MENANTU</option>
+                            <option value="CUCU">CUCU</option>
+                            <option value="ORANG TUA">ORANG TUA</option>
+                            <option value="MERTUA">MERTUA</option>
+                            <option value="FAMILI LAIN">FAMILI LAIN</option>
+                            <option value="PEMBANTU/SOPIR/ASISTEN RUMAH TANGGA/PENGASUH">PEMBANTU/SOPIR/ASISTEN RUMAH TANGGA/PENGASUH</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Kewarganegaraan</label>
@@ -765,9 +899,9 @@ function render_anggota_block($a, $nomor)
                     <div class="form-group">
                         <label>Status Penduduk</label>
                         <select name="status_penduduk[]" required>
-                            <option value="Aktif">Aktif</option>
-                            <option value="Pindah">Pindah</option>
-                            <option value="Meninggal">Meninggal</option>
+                            <option value="PERMANEN">PERMANEN</option>
+                            <option value="NON PERMANEN">NON PERMANEN</option>
+                            <option value="MENINGGAL">MENINGGAL</option>
                         </select>
                     </div>
                 </div>
@@ -780,11 +914,15 @@ function render_anggota_block($a, $nomor)
             wrapper.innerHTML = blokAnggotaKosongHTML().trim();
             container.appendChild(wrapper.firstChild);
             renumberBlocks();
-            container.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            container.lastElementChild.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
         });
 
         renumberBlocks();
     </script>
 
 </body>
+
 </html>

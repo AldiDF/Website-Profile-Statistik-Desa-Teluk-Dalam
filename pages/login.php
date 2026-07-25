@@ -1,24 +1,62 @@
 <?php
+require '../databases/session_config.php';
+session_start();
 require "../databases/connection.php";
- 
+$conn = $conn ?? null;
+
 $error = "";
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+// ==========================
+// PROTEKSI BRUTE-FORCE
+// ==========================
+if (!isset($_SESSION['login_attempts'])) {
+    $_SESSION['login_attempts'] = 0;
+    $_SESSION['last_attempt_time'] = time();
+}
+
+$locked_out = false;
+if ($_SESSION['login_attempts'] >= 5 && (time() - $_SESSION['last_attempt_time']) < 300) {
+    $sisa_detik = 300 - (time() - $_SESSION['last_attempt_time']);
+    $error = "Terlalu banyak percobaan login. Coba lagi dalam " . ceil($sisa_detik / 60) . " menit.";
+    $locked_out = true;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$locked_out) {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
- 
+
     if (empty($username) || empty($password)) {
         $error = "Username dan password wajib diisi.";
- 
+    } elseif (!($conn instanceof mysqli)) {
+        $error = "Koneksi database gagal.";
     } else {
-        if ($username == "admin" && $password == "admin123"){
-            echo "
-                <script>
-                    alert('Login Berhasil');
-                    document.location.href = 'dashboard.php';
-                </script>
-            ";
+        // Ambil data admin dari database berdasarkan username
+        $stmt = mysqli_prepare($conn, "SELECT id, username, password FROM admin WHERE username = ?");
+        mysqli_stmt_bind_param($stmt, "s", $username);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $row = mysqli_fetch_assoc($result);
+        mysqli_stmt_close($stmt);
+
+        // Verifikasi password menggunakan hash (BUKAN perbandingan string biasa)
+        if ($row && password_verify($password, $row['password'])) {
+
+            // Regenerasi session ID -> cegah session fixation
+            session_regenerate_id(true);
+
+            $_SESSION['admin_id']       = $row['id'];
+            $_SESSION['admin_username'] = $row['username'];
+            $_SESSION['login_time']     = time();
+            $_SESSION['ip_address']     = $_SERVER['REMOTE_ADDR'];
+            $_SESSION['user_agent']     = $_SERVER['HTTP_USER_AGENT'];
+
+            unset($_SESSION['login_attempts']); // reset percobaan gagal
+
+            header("Location: dashboard.php");
             exit;
         } else {
+            $_SESSION['login_attempts']++;
+            $_SESSION['last_attempt_time'] = time();
             $error = "Username atau password salah.";
         }
     }
@@ -55,7 +93,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 1.5rem;
         }
 
-        /* dekorasi lembut ala hero section beranda */
         body::before,
         body::after {
             content: "";
@@ -139,6 +176,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow: 0 0 0 3px rgba(244, 180, 0, 0.18);
         }
 
+        .form-group input:disabled {
+            background: #f3f4f6;
+            cursor: not-allowed;
+        }
+
         .btn-login {
             width: 100%;
             padding: 0.8rem;
@@ -160,6 +202,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .btn-login:active {
             transform: scale(0.98);
+        }
+
+        .btn-login:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
         }
 
         .error-msg {
@@ -192,7 +239,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              <img src="../assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam" style="width: 70px; height: 70px; object-fit: contain;">
             <h2>Desa Teluk Dalam</h2>
             <span>Portal Admin</span>
-            
         </div>
 
         <?php if (!empty($error)): ?>
@@ -202,16 +248,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form action="" method="POST">
             <div class="form-group">
                 <label for="username">Username</label>
-                <input type="text" id="username" name="username" required autofocus>
+                <input type="text" id="username" name="username" required autofocus <?= $locked_out ? 'disabled' : '' ?>>
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
+                <input type="password" id="password" name="password" required <?= $locked_out ? 'disabled' : '' ?>>
             </div>
-            <button type="submit" class="btn-login">Masuk</button>
+            <button type="submit" class="btn-login" <?= $locked_out ? 'disabled' : '' ?>>Masuk</button>
         </form>
 
-        <a href="../beranda.html" class="back-link">&larr; Kembali ke Beranda</a>
+        <a href="beranda.php" class="back-link">&larr; Kembali ke Beranda</a>
     </div>
 </body>
 </html>

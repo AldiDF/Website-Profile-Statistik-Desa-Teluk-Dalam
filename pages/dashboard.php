@@ -1,5 +1,5 @@
 <?php
-session_start();
+require '../databases/auth_check.php';
 require '../databases/connection.php';
 
 if (!isset($conn)) {
@@ -14,8 +14,18 @@ if (isset($_GET['rt']) && $_GET['rt'] !== "") {
     }
 }
 
+$daftar_rt = [];
+$queryRT = "SELECT DISTINCT CAST(rt AS UNSIGNED) AS rt_num FROM keluarga ORDER BY rt_num ASC";
+$resultRT = mysqli_query($conn, $queryRT);
+
+if ($resultRT) {
+    while ($rowRT = mysqli_fetch_assoc($resultRT)) {
+        $daftar_rt[] = (int) $rowRT['rt_num']; // <-- kunci perbaikannya di sini
+    }
+    mysqli_free_result($resultRT);
+}
+
 // Daftar RT yang ditampilkan sebagai tombol filter (tetap RT 1 - 4)
-$daftar_rt = [1, 2, 3, 4];
 
 $data_penduduk = [];
 
@@ -49,6 +59,7 @@ if ($rt_filter !== "") {
 $query .= " ORDER BY k.rt ASC, k.nomor_kk ASC, p.id_penduduk ASC ";
 
 $result = mysqli_query($conn, $query);
+
 
 if ($result) {
     while ($row = mysqli_fetch_assoc($result)) {
@@ -397,7 +408,7 @@ function hitung_umur($tanggal_lahir)
         </div>
         <div class="nav-menu">
             <a href="dashboard.php" class="active">Data Penduduk</a>
-            <a href="beranda.php">Keluar</a>
+            <a href="../databases/logout.php">Keluar</a>
         </div>
         <div class="nav-right">
             <span class="halo">Halo, Admin</span>
