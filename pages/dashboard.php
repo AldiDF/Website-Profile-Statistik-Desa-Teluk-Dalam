@@ -14,6 +14,13 @@ if (isset($_GET['rt']) && $_GET['rt'] !== "") {
     }
 }
 
+// Filter penduduk tetap (PERMANEN) / tidak tetap (NON PERMANEN)
+$status_penduduk_filter = "";
+$status_penduduk_valid  = ['PERMANEN', 'NON PERMANEN'];
+if (isset($_GET['status_penduduk']) && in_array($_GET['status_penduduk'], $status_penduduk_valid, true)) {
+    $status_penduduk_filter = $_GET['status_penduduk'];
+}
+
 $daftar_rt = [];
 $queryRT = "SELECT DISTINCT CAST(rt AS UNSIGNED) AS rt_num FROM keluarga ORDER BY rt_num ASC";
 $resultRT = mysqli_query($conn, $queryRT);
@@ -40,7 +47,6 @@ $query = "
         p.tanggal_lahir,
         p.jenis_kelamin,
         p.agama,
-        p.status_perkawinan,
         p.pekerjaan,
         p.pendidikan_terakhir,
         p.kewarganegaraan,
@@ -52,8 +58,15 @@ $query = "
     JOIN keluarga k ON p.id_keluarga_fk = k.id_keluarga
 ";
 
+$where = [];
 if ($rt_filter !== "") {
-    $query .= " WHERE CAST(k.rt AS UNSIGNED) = " . (int) $rt_filter . " ";
+    $where[] = "CAST(k.rt AS UNSIGNED) = " . (int) $rt_filter;
+}
+if ($status_penduduk_filter !== "") {
+    $where[] = "p.status_penduduk = '" . mysqli_real_escape_string($conn, $status_penduduk_filter) . "'";
+}
+if (!empty($where)) {
+    $query .= " WHERE " . implode(" AND ", $where) . " ";
 }
 
 $query .= " ORDER BY k.rt ASC, k.nomor_kk ASC, p.id_penduduk ASC ";
@@ -72,8 +85,8 @@ if ($result) {
 
 $total_penduduk  = count($data_penduduk);
 $total_kk        = count(array_unique(array_column($data_penduduk, 'nomor_kk')));
-$total_laki      = count(array_filter($data_penduduk, fn($p) => $p['jenis_kelamin'] === 'Laki-laki'));
-$total_perempuan = count(array_filter($data_penduduk, fn($p) => $p['jenis_kelamin'] === 'Perempuan'));
+$total_laki      = count(array_filter($data_penduduk, fn($p) => strtoupper($p['jenis_kelamin']) === 'LAKI-LAKI'));
+$total_perempuan = count(array_filter($data_penduduk, fn($p) => strtoupper($p['jenis_kelamin']) === 'PEREMPUAN'));
 
 // ==========================
 // KELOMPOKKAN DATA PER KK (meniru struktur excel)
@@ -327,6 +340,7 @@ function hitung_umur($tanggal_lahir)
             border-top: 2px solid var(--hijau-tua);
             border-bottom: 1px solid var(--border-soft);
             white-space: normal;
+            text-align: left;
         }
         .kk-header-row .kk-tag {
             display: inline-block;
@@ -432,7 +446,7 @@ function hitung_umur($tanggal_lahir)
         <!-- STATISTIK -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="label">Total Penduduk<?= $rt_filter !== "" ? " (RT $rt_filter)" : "" ?></div>
+                <div class="label">Total Penduduk<?= $rt_filter !== "" ? " (RT $rt_filter)" : "" ?><?= $status_penduduk_filter !== "" ? " - " . ucwords(strtolower($status_penduduk_filter)) : "" ?></div>
                 <div class="value"><?= $total_penduduk ?></div>
             </div>
             <div class="stat-card kk">
@@ -451,21 +465,29 @@ function hitung_umur($tanggal_lahir)
 
         <!-- FILTER RT -->
         <div class="rt-filter">
-            <a href="dashboard.php" class="<?= $rt_filter === "" ? "active" : "" ?>">Semua RT</a>
+            <a href="dashboard.php<?= $status_penduduk_filter !== "" ? "?status_penduduk=" . urlencode($status_penduduk_filter) : "" ?>" class="<?= $rt_filter === "" ? "active" : "" ?>">Semua RT</a>
             <?php foreach ($daftar_rt as $rtValue): ?>
-                <a href="dashboard.php?rt=<?= $rtValue ?>"
+                <a href="dashboard.php?rt=<?= $rtValue ?><?= $status_penduduk_filter !== "" ? "&status_penduduk=" . urlencode($status_penduduk_filter) : "" ?>"
                     class="<?= ($rt_filter !== "" && (int) $rt_filter === $rtValue) ? "active" : "" ?>">
                     RT <?= $rtValue ?>
                 </a>
             <?php endforeach; ?>
         </div>
 
+        <!-- FILTER STATUS PENDUDUK (TETAP / TIDAK TETAP) -->
+        <div class="rt-filter">
+            <a href="dashboard.php<?= $rt_filter !== "" ? "?rt=" . urlencode($rt_filter) : "" ?>" class="<?= $status_penduduk_filter === "" ? "active" : "" ?>">Semua Status</a>
+            <a href="dashboard.php?status_penduduk=PERMANEN<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>" class="<?= $status_penduduk_filter === "PERMANEN" ? "active" : "" ?>">Penduduk Tetap</a>
+            <a href="dashboard.php?status_penduduk=NON+PERMANEN<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>" class="<?= $status_penduduk_filter === "NON PERMANEN" ? "active" : "" ?>">Penduduk Tidak Tetap</a>
+        </div>
+
         <!-- TABEL DATA -->
         <div class="table-card">
             <div class="table-header">
-                <h2>Data Kependudukan<?= $rt_filter !== "" ? " - RT $rt_filter" : "" ?></h2>
+                <h2>Data Kependudukan<?= $rt_filter !== "" ? " - RT $rt_filter" : "" ?><?= $status_penduduk_filter !== "" ? " - " . ($status_penduduk_filter === "PERMANEN" ? "Penduduk Tetap" : "Penduduk Tidak Tetap") : "" ?></h2>
                 <div style="display:flex; gap:0.6rem; align-items:center;">
                     <input type="text" id="searchInput" class="search-box" placeholder="Cari NIK, nama, alamat, dll...">
+                    <a href="import_massal.php" class="btn" style="border:1px solid var(--hijau-tua); padding:0.5rem 0.9rem; border-radius:8px;">📥 Import Massal</a>
                     <a href="data_detail.php" class="btn-tambah">+ Tambah Data</a>
                 </div>
             </div>
@@ -482,7 +504,6 @@ function hitung_umur($tanggal_lahir)
                             <th>Jenis Kelamin</th>
                             <th>Hubungan Dalam Keluarga</th>
                             <th>Agama</th>
-                            <th>Status Perkawinan</th>
                             <th>Pendidikan Terakhir</th>
                             <th>Pekerjaan</th>
                             <th>Kewarganegaraan</th>
@@ -492,13 +513,13 @@ function hitung_umur($tanggal_lahir)
 
                     <?php if (empty($grouped)): ?>
                         <tbody>
-                            <tr><td colspan="13" style="text-align:center; padding:2rem; color:#94a3b8;">Tidak ada data.</td></tr>
+                            <tr><td colspan="12" style="text-align:center; padding:2rem; color:#94a3b8;">Tidak ada data.</td></tr>
                         </tbody>
                     <?php else: ?>
                         <?php foreach ($grouped as $kel): ?>
                             <tbody class="kk-group">
                                 <tr class="kk-header-row">
-                                    <th colspan="13">
+                                    <th colspan="12">
                                         <span class="kk-tag">No. KK: <?= htmlspecialchars($kel['nomor_kk'] ?? '-') ?></span>
                                         <span class="rt-tag">RT <?= htmlspecialchars($kel['rt'] ?? '-') ?></span>
                                         Alamat: <?= htmlspecialchars($kel['alamat_domisili'] ?? '-') ?>
@@ -521,7 +542,6 @@ function hitung_umur($tanggal_lahir)
                                         <td><?= htmlspecialchars($p['jenis_kelamin'] ?? '') ?></td>
                                         <td><?= htmlspecialchars($p['hubungan_keluarga'] ?? '') ?></td>
                                         <td><?= htmlspecialchars($p['agama'] ?? '') ?></td>
-                                        <td><?= htmlspecialchars($p['status_perkawinan'] ?? '') ?></td>
                                         <td><?= htmlspecialchars($p['pendidikan_terakhir'] ?? '') ?></td>
                                         <td><?= htmlspecialchars($p['pekerjaan'] ?? '') ?></td>
                                         <td><?= htmlspecialchars($p['kewarganegaraan'] ?? '') ?></td>
@@ -563,8 +583,6 @@ function hitung_umur($tanggal_lahir)
                         visibleCount++;
                     }
                 });
-
-                // Sembunyikan header KK juga kalau tidak ada anggota yang cocok
                 group.style.display = groupHasMatch ? '' : 'none';
             });
 

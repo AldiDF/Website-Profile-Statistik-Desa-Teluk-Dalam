@@ -7,7 +7,6 @@ function tambah_data_penduduk(
     string $tanggal_lahir,
     string $jenis_kelamin,
     string $agama,
-    string $status_perkawinan,
     string $pekerjaan,
     string $pendidikan_terakhir,
     string $kewarganegaraan,
@@ -18,20 +17,19 @@ function tambah_data_penduduk(
 
     $stmt = mysqli_prepare($conn, "INSERT INTO penduduk (
                         nik, nama_lengkap, tempat_lahir, tanggal_lahir,
-                        jenis_kelamin, agama, status_perkawinan, pekerjaan,
+                        jenis_kelamin, agama, pekerjaan,
                         pendidikan_terakhir, kewarganegaraan, status_penduduk, id_keluarga_fk, hubungan_keluarga
-                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
 
     mysqli_stmt_bind_param(
         $stmt,
-        "sssssssssssis",
+        "ssssssssssis",
         $nik,
         $nama_lengkap,
         $tempat_lahir,
         $tanggal_lahir,
         $jenis_kelamin,
         $agama,
-        $status_perkawinan,
         $pekerjaan,
         $pendidikan_terakhir,
         $kewarganegaraan,
@@ -51,7 +49,6 @@ function edit_data_penduduk(
     string $tanggal_lahir,
     string $jenis_kelamin,
     string $agama,
-    string $status_perkawinan,
     string $pekerjaan,
     string $pendidikan_terakhir,
     string $kewarganegaraan,
@@ -66,7 +63,6 @@ function edit_data_penduduk(
                         tanggal_lahir = ?,
                         jenis_kelamin = ?,
                         agama = ?,
-                        status_perkawinan = ?,
                         pekerjaan = ?,
                         pendidikan_terakhir = ?,
                         kewarganegaraan = ?,
@@ -76,14 +72,13 @@ function edit_data_penduduk(
 
     mysqli_stmt_bind_param(
         $stmt,
-        "ssssssssssssi",
+        "sssssssssssi",
         $nik,
         $nama_lengkap,
         $tempat_lahir,
         $tanggal_lahir,
         $jenis_kelamin,
         $agama,
-        $status_perkawinan,
         $pekerjaan,
         $pendidikan_terakhir,
         $kewarganegaraan,

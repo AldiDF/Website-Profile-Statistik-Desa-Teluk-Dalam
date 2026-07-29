@@ -27,7 +27,6 @@ $anggota_kosong = [
     "tanggal_lahir"       => "",
     "jenis_kelamin"       => "",
     "agama"               => "",
-    "status_perkawinan"   => "",
     "pekerjaan"           => "",
     "pendidikan_terakhir" => "",
     "kewarganegaraan"     => "",
@@ -66,7 +65,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tanggal_lahirs     = bersihkan_input_array($_POST['tanggal_lahir'] ?? []);
     $jenis_kelamins     = bersihkan_input_array($_POST['jenis_kelamin'] ?? []);
     $agamas             = bersihkan_input_array($_POST['agama'] ?? []);
-    $status_perkawinans = bersihkan_input_array($_POST['status_perkawinan'] ?? []);
     $pekerjaans         = bersihkan_input_array($_POST['pekerjaan'] ?? []);
     $pendidikans        = bersihkan_input_array($_POST['pendidikan_terakhir'] ?? []);
     $kewarganegaraans   = bersihkan_input_array($_POST['kewarganegaraan'] ?? []);
@@ -84,7 +82,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "tanggal_lahir"       => $tanggal_lahirs[$i] ?? '',
             "jenis_kelamin"       => $jenis_kelamins[$i] ?? '',
             "agama"               => $agamas[$i] ?? '',
-            "status_perkawinan"   => $status_perkawinans[$i] ?? '',
             "pekerjaan"           => $pekerjaans[$i] ?? '',
             "pendidikan_terakhir" => $pendidikans[$i] ?? '',
             "kewarganegaraan"     => $kewarganegaraans[$i] ?? '',
@@ -134,11 +131,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 mysqli_stmt_close($stmtCek);
 
-                $stmtKeluarga = edit_data_keluarga($conn, $keluarga['nomor_kk'], $keluarga['rt'], $keluarga['alamat_domisili'], $id_keluarga);
-                if (!mysqli_stmt_execute($stmtKeluarga)) {
-                    throw new Exception("Gagal menyimpan data keluarga.");
+                // Cek dulu apakah data keluarga benar-benar berubah, supaya tidak query sia-sia
+                $data_keluarga_lama = ambil_data_keluarga($conn, $id_keluarga);
+                $keluarga_berubah = (
+                    $data_keluarga_lama === null ||
+                    (string) $data_keluarga_lama['nomor_kk']        !== (string) $keluarga['nomor_kk'] ||
+                    (string) $data_keluarga_lama['rt']              !== (string) $keluarga['rt'] ||
+                    (string) $data_keluarga_lama['alamat_domisili'] !== (string) $keluarga['alamat_domisili']
+                );
+
+                if ($keluarga_berubah) {
+                    $stmtKeluarga = edit_data_keluarga($conn, $keluarga['nomor_kk'], $keluarga['rt'], $keluarga['alamat_domisili'], $id_keluarga);
+                    if (!mysqli_stmt_execute($stmtKeluarga)) {
+                        throw new Exception("Gagal menyimpan data keluarga.");
+                    }
+                    mysqli_stmt_close($stmtKeluarga);
                 }
-                mysqli_stmt_close($stmtKeluarga);
 
                 // Hapus anggota yang sudah tidak ada di form (dihapus lewat tombol Hapus)
                 $original_id_arr  = array_filter(array_map('trim', explode(',', $original_ids)));
@@ -163,20 +171,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $currentId = trim($id_penduduks[$i] ?? '');
 
                 if ($currentId !== '') {
+                    // Bandingkan dulu dengan data lama di database; kalau tidak ada
+                    // perubahan sama sekali, lewati query UPDATE untuk anggota ini.
+                    $data_lama = ambil_data_penduduk_by_id($conn, (int) $currentId);
+                    $data_baru = [
+                        'nik'                 => trim($niks[$i]),
+                        'nama_lengkap'        => trim($namas[$i]),
+                        'tempat_lahir'        => trim($tempat_lahirs[$i]),
+                        'tanggal_lahir'       => trim($tanggal_lahirs[$i]),
+                        'jenis_kelamin'       => trim($jenis_kelamins[$i]),
+                        'agama'               => trim($agamas[$i]),
+                        'pekerjaan'           => trim($pekerjaans[$i]),
+                        'pendidikan_terakhir' => trim($pendidikans[$i]),
+                        'kewarganegaraan'     => trim($kewarganegaraans[$i]),
+                        'status_penduduk'     => trim($status_penduduks[$i]),
+                        'hubungan_keluarga'   => trim($hubungans[$i]),
+                    ];
+
+                    $ada_perubahan = true;
+                    if ($data_lama !== null) {
+                        $ada_perubahan = false;
+                        foreach ($data_baru as $kolom => $nilai_baru) {
+                            if ((string) $data_lama[$kolom] !== (string) $nilai_baru) {
+                                $ada_perubahan = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!$ada_perubahan) {
+                        continue; // tidak ada perubahan -> skip, lanjut ke anggota berikutnya
+                    }
+
                     $stmtAnggota = edit_data_penduduk(
                         $conn,
-                        trim($niks[$i]),
-                        trim($namas[$i]),
-                        trim($tempat_lahirs[$i]),
-                        trim($tanggal_lahirs[$i]),
-                        trim($jenis_kelamins[$i]),
-                        trim($agamas[$i]),
-                        trim($status_perkawinans[$i]),
-                        trim($pekerjaans[$i]),
-                        trim($pendidikans[$i]),
-                        trim($kewarganegaraans[$i]),
-                        trim($status_penduduks[$i]),
-                        trim($hubungans[$i]),
+                        $data_baru['nik'],
+                        $data_baru['nama_lengkap'],
+                        $data_baru['tempat_lahir'],
+                        $data_baru['tanggal_lahir'],
+                        $data_baru['jenis_kelamin'],
+                        $data_baru['agama'],
+                        $data_baru['pekerjaan'],
+                        $data_baru['pendidikan_terakhir'],
+                        $data_baru['kewarganegaraan'],
+                        $data_baru['status_penduduk'],
+                        $data_baru['hubungan_keluarga'],
                         (int) $currentId
                     );
                 } else {
@@ -188,7 +227,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         trim($tanggal_lahirs[$i]),
                         trim($jenis_kelamins[$i]),
                         trim($agamas[$i]),
-                        trim($status_perkawinans[$i]),
                         trim($pekerjaans[$i]),
                         trim($pendidikans[$i]),
                         trim($kewarganegaraans[$i]),
@@ -251,7 +289,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 "tanggal_lahir"       => $a['tanggal_lahir'],
                 "jenis_kelamin"       => $a['jenis_kelamin'],
                 "agama"               => $a['agama'],
-                "status_perkawinan"   => $a['status_perkawinan'],
                 "pekerjaan"           => $a['pekerjaan'],
                 "pendidikan_terakhir" => $a['pendidikan_terakhir'],
                 "kewarganegaraan"     => $a['kewarganegaraan'],
@@ -370,14 +407,6 @@ function render_anggota_block($a, $nomor)
                 <label>Jenis Pekerjaan</label>
                 <input type="text" name="pekerjaan[]" maxlength="100" value="<?= htmlspecialchars($a['pekerjaan'] ?? '') ?>" required>
             </div>
-            <div class="form-group">
-                <label>Status Perkawinan</label>
-                <select name="status_perkawinan[]" required>
-                    <option value="">-- Pilih --</option>
-                    <?= opsi_select('status_perkawinan', ['BELUM KAWIN', 'KAWIN', 'CERAI HIDUP', 'CERAI MATI'], $a['status_perkawinan'] ?? '') ?>
-                </select>
-            </div>
-
             <div class="form-group">
                 <label>Status Hubungan Dalam Keluarga</label>
                 <select name="hubungan_keluarga[]" required>
@@ -753,6 +782,13 @@ function render_anggota_block($a, $nomor)
 
                 <div class="card">
                     <p class="section-title">Anggota Keluarga</p>
+
+                    <div style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap; margin-bottom:1rem;">
+                        <input type="file" id="importExcelInput" accept=".xlsx,.xls" style="display:none;">
+                        <button type="button" class="btn-tambah-anggota" id="btnImportExcel">📥 Import dari Excel</button>
+                        <span id="importStatus" style="font-size:0.82rem; color:#898781;"></span>
+                    </div>
+
                     <div id="anggotaContainer">
                         <?php foreach ($anggota_list as $i => $a): ?>
                             <?= render_anggota_block($a, $i + 1) ?>
@@ -780,7 +816,210 @@ function render_anggota_block($a, $nomor)
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
+        // ==========================
+        // IMPORT DARI EXCEL (format standar Data Keluarga)
+        // ==========================
+        const MAP_PENDIDIKAN = {
+            'TIDAK SEKOLAH': 'TIDAK SEKOLAH',
+            'SD/SEDERAJAT': 'SD/SEDERAJAT',
+            'SLTP/SEDERAJAT': 'SLTP/SEDERAJAT',
+            'SLTA/SEDERAJAT': 'SLTA/SEDERAJAT',
+            'DIPLOMA I': 'DIPLOMA I',
+            'DIPLOMA II': 'DIPLOMA II',
+            'DIPLOMA III': 'DIPLOMA III',
+            'DIPLOMA IV/STRATA I': 'DIPLOMA IV/STRATA I',
+            'D-IV/SEDERAJAT': 'DIPLOMA IV/STRATA I',
+            'S1/SEDERAJAT': 'DIPLOMA IV/STRATA I',
+            'S2/SEDERAJAT': 'STRATA II',
+            'S3/SEDERAJAT': 'STRATA III',
+        };
+
+        function normalisasiPendidikan(v) {
+            if (!v) return '';
+            const key = v.toString().trim().toUpperCase();
+            return MAP_PENDIDIKAN[key] || key;
+        }
+
+        function excelDateToISO(v) {
+            if (!v) return '';
+            if (v instanceof Date && !isNaN(v)) {
+                const y = v.getFullYear();
+                const m = String(v.getMonth() + 1).padStart(2, '0');
+                const d = String(v.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+            const parts = v.toString().trim().split(/[\/\-]/);
+            if (parts.length === 3) {
+                let [a, b, c] = parts;
+                if (c.length === 4) return `${c}-${b.padStart(2, '0')}-${a.padStart(2, '0')}`;
+                if (a.length === 4) return `${a}-${b.padStart(2, '0')}-${c.padStart(2, '0')}`;
+            }
+            return '';
+        }
+
+        function setSelectValue(block, name, value) {
+            const el = block.querySelector(`[name="${name}"]`);
+            if (!el || !value) return;
+            const opsi = Array.from(el.options).find(o => o.value.toUpperCase() === value.toUpperCase());
+            if (opsi) el.value = opsi.value;
+        }
+
+        function anggotaBlockKosongDiForm() {
+            const container = document.getElementById('anggotaContainer');
+            const blocks = container.querySelectorAll('.anggota-block');
+            if (blocks.length === 0) return true;
+            if (blocks.length === 1) {
+                const nama = blocks[0].querySelector('[name="nama_lengkap[]"]');
+                return !nama || nama.value.trim() === '';
+            }
+            return false;
+        }
+
+        document.getElementById('btnImportExcel').addEventListener('click', () => {
+            document.getElementById('importExcelInput').click();
+        });
+
+        document.getElementById('importExcelInput').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            e.target.value = ''; // supaya file yang sama bisa dipilih lagi kalau perlu
+            if (!file) return;
+
+            if (!anggotaBlockKosongDiForm()) {
+                const lanjut = confirm('Form sudah berisi data anggota. Import akan MENGGANTI seluruh anggota yang sudah ada di form ini. Lanjutkan?');
+                if (!lanjut) return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
+                    prosesImportExcel(rows);
+                } catch (err) {
+                    alert('Gagal membaca file Excel: ' + err.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function prosesImportExcel(rows) {
+            let nomorKK = '', rt = '', alamat = '';
+            let headerRowIdx = -1;
+            let nomorKKRowIdx = -1;
+            // Kumpulkan semua header "PERIODE ... ( PENDUDUK PERMANEN/NON PERMANEN)" beserta posisi barisnya.
+            // File bisa berisi lebih dari satu blok header, jadi statusnya nanti diambil dari header
+            // TERDEKAT SEBELUM baris "No. KK" yang terbaca, bukan header terakhir di seluruh file.
+            const statusHeaderList = []; // { rowIndex, status }
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const cellA = (row[0] || '').toString();
+
+                if (cellA.trim().toUpperCase().startsWith('NO. KK')) {
+                    const mKK = cellA.match(/(\d{16})/);
+                    if (mKK) { nomorKK = mKK[1]; nomorKKRowIdx = i; }
+                }
+                if (cellA.trim().toUpperCase().startsWith('ALAMAT')) {
+                    const mAlamat = cellA.match(/ALAMAT\s*:\s*(.*?),\s*NAMA DUSUN/i);
+                    if (mAlamat) alamat = mAlamat[1].trim();
+                    const mRT = cellA.match(/RT\/RW\s*:\s*(\d+)/i);
+                    if (mRT) rt = mRT[1];
+                }
+                // Baris "No. KK : ..." di file contoh menyatukan info KK & alamat di kolom A/C
+                const cellC = (row[2] || '').toString();
+                if (cellC.toUpperCase().includes('ALAMAT')) {
+                    const mAlamat = cellC.match(/ALAMAT\s*:\s*(.*?),\s*NAMA DUSUN/i);
+                    if (mAlamat) alamat = mAlamat[1].trim();
+                    const mRT = cellC.match(/RT\/RW\s*:\s*(\d+)/i);
+                    if (mRT) rt = mRT[1];
+                }
+                if (cellA.trim().toUpperCase() === 'NO' && (row[1] || '').toString().toUpperCase().includes('NAMA')) {
+                    headerRowIdx = i;
+                }
+                if (cellA.trim().toUpperCase().startsWith('PERIODE')) {
+                    const cellRT = (row[12] || '').toString();
+                    let status = 'PERMANEN';
+                    if (/NON PERMANEN/i.test(cellRT)) status = 'NON PERMANEN';
+                    else if (/PERMANEN/i.test(cellRT)) status = 'PERMANEN';
+                    statusHeaderList.push({ rowIndex: i, status: status });
+                }
+            }
+
+            // Ambil status dari header PERIODE terdekat SEBELUM baris "No. KK" yang terbaca
+            let statusPendudukHeader = 'PERMANEN';
+            const acuanBaris = nomorKKRowIdx > -1 ? nomorKKRowIdx : rows.length;
+            for (const h of statusHeaderList) {
+                if (h.rowIndex <= acuanBaris) statusPendudukHeader = h.status;
+                else break;
+            }
+
+            if (!nomorKK && headerRowIdx === -1) {
+                alert('Format Excel tidak dikenali. Pastikan menggunakan format Data Keluarga standar.');
+                return;
+            }
+
+            if (nomorKK) document.querySelector('input[name="nomor_kk"]').value = nomorKK;
+            if (rt) document.querySelector('input[name="rt"]').value = rt.padStart(3, '0');
+            if (alamat) document.querySelector('input[name="alamat_domisili"]').value = alamat;
+
+            const dataRows = [];
+            for (let i = (headerRowIdx > -1 ? headerRowIdx + 1 : 0); i < rows.length; i++) {
+                const row = rows[i];
+                const cellA = (row[0] || '').toString().trim();
+                if (cellA.toUpperCase().startsWith('NO. KK')) continue;
+                const nama = (row[1] || '').toString().trim();
+                const nik = (row[2] || '').toString().trim();
+                if (!nama && !nik) continue;
+                dataRows.push(row);
+            }
+
+            if (dataRows.length === 0) {
+                alert('Tidak ada data anggota yang terbaca dari file.');
+                return;
+            }
+
+            const container = document.getElementById('anggotaContainer');
+            container.innerHTML = '';
+
+            dataRows.forEach((row) => {
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = blokAnggotaKosongHTML().trim();
+                const block = wrapper.firstChild;
+
+                const nama = (row[1] || '').toString().trim();
+                const nik = (row[2] || '').toString().trim();
+                const tempatLahir = (row[3] || '').toString().trim();
+                const tglLahir = excelDateToISO(row[4]);
+                const jk = (row[5] || '').toString().trim().toUpperCase();
+                const hubungan = (row[6] || '').toString().trim().toUpperCase();
+                const agama = (row[7] || '').toString().trim().toUpperCase();
+                const pendidikan = normalisasiPendidikan(row[8]);
+                const pekerjaan = (row[9] || '').toString().trim();
+
+                block.querySelector('[name="nama_lengkap[]"]').value = nama;
+                block.querySelector('[name="nik[]"]').value = nik;
+                block.querySelector('[name="tempat_lahir[]"]').value = tempatLahir;
+                block.querySelector('[name="tanggal_lahir[]"]').value = tglLahir;
+                setSelectValue(block, 'jenis_kelamin[]', jk);
+                setSelectValue(block, 'hubungan_keluarga[]', hubungan);
+                setSelectValue(block, 'agama[]', agama);
+                setSelectValue(block, 'pendidikan_terakhir[]', pendidikan);
+                block.querySelector('[name="pekerjaan[]"]').value = pekerjaan;
+                setSelectValue(block, 'status_penduduk[]', statusPendudukHeader);
+                setSelectValue(block, 'kewarganegaraan[]', 'WNI');
+
+                container.appendChild(block);
+            });
+
+            renumberBlocks();
+            document.getElementById('importStatus').textContent =
+                `${dataRows.length} anggota berhasil diimpor. Cek ulang data sebelum menyimpan.`;
+        }
+
         function renumberBlocks() {
             document.querySelectorAll('#anggotaContainer .anggota-block .block-num').forEach((el, idx) => {
                 el.textContent = idx + 1;
@@ -863,16 +1102,6 @@ function render_anggota_block($a, $nomor)
                     <div class="form-group">
                         <label>Jenis Pekerjaan</label>
                         <input type="text" name="pekerjaan[]" maxlength="100" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Status Perkawinan</label>
-                        <select name="status_perkawinan[]" required>
-                            <option value="">-- Pilih --</option>
-                            <option value="BELUM KAWIN">BELUM KAWIN</option>
-                            <option value="KAWIN">KAWIN</option>
-                            <option value="CERAI HIDUP">CERAI HIDUP</option>
-                            <option value="CERAI MATI">CERAI MATI</option>
-                        </select>
                     </div>
                     <div class="form-group">
                         <label>Status Hubungan Dalam Keluarga</label>

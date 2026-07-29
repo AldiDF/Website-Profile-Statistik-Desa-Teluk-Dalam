@@ -40,6 +40,36 @@ function ambil_anggota_keluarga($conn, int $id_keluarga) {
     return $anggota;
 }
 
+function ambil_data_penduduk_by_id($conn, int $id_penduduk) {
+    $stmt = mysqli_prepare($conn, "SELECT * FROM penduduk WHERE id_penduduk = ?");
+    mysqli_stmt_bind_param($stmt, "i", $id_penduduk);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($result);
+    mysqli_stmt_close($stmt);
+    return $row ?: null;
+}
+
+function ambil_data_penduduk_by_nik($conn, string $nik) {
+    $stmt = mysqli_prepare($conn, "SELECT * FROM penduduk WHERE nik = ?");
+    mysqli_stmt_bind_param($stmt, "s", $nik);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($result);
+    mysqli_stmt_close($stmt);
+    return $row ?: null;
+}
+
+function ambil_data_keluarga_by_nomor_kk($conn, string $nomor_kk) {
+    $stmt = mysqli_prepare($conn, "SELECT * FROM keluarga WHERE nomor_kk = ?");
+    mysqli_stmt_bind_param($stmt, "s", $nomor_kk);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($result);
+    mysqli_stmt_close($stmt);
+    return $row ?: null;
+}
+
 function ambil_data_penduduk($conn, $id, $form_data_penduduk) {
     $stmt = mysqli_prepare($conn, "
         SELECT p.*, k.nomor_kk, k.rt, k.alamat_domisili
