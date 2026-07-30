@@ -8,6 +8,7 @@ if (!isset($conn)) {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,8 +25,19 @@ if (!isset($conn)) {
             --border-soft: #e1e0d9;
             --bg: #f6f5f1;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', 'Segoe UI', Arial, sans-serif; }
-        body { background: var(--bg); color: #2b2b28; }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: #2b2b28;
+        }
+
         .topbar {
             background: var(--hijau-tua);
             color: #fff;
@@ -34,17 +46,39 @@ if (!isset($conn)) {
             align-items: center;
             gap: 0.7rem;
         }
-        .topbar img { width: 32px; height: 36px; border-radius: 50%; }
-        .page-wrap { max-width: 780px; margin: 2rem auto; padding: 0 1rem; }
+
+        .topbar img {
+            width: 32px;
+            height: 36px;
+            border-radius: 50%;
+        }
+
+        .page-wrap {
+            max-width: 780px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
         .card {
             background: #fff;
             border-radius: 14px;
             padding: 1.8rem;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
             margin-bottom: 1.5rem;
         }
-        h1 { font-size: 1.3rem; color: var(--hijau-gelap); margin-bottom: 0.4rem; }
-        p.desc { color: var(--abu-teks); font-size: 0.9rem; margin-bottom: 1.2rem; }
+
+        h1 {
+            font-size: 1.3rem;
+            color: var(--hijau-gelap);
+            margin-bottom: 0.4rem;
+        }
+
+        p.desc {
+            color: var(--abu-teks);
+            font-size: 0.9rem;
+            margin-bottom: 1.2rem;
+        }
+
         .drop-zone {
             border: 2px dashed var(--border-soft);
             border-radius: 12px;
@@ -53,18 +87,28 @@ if (!isset($conn)) {
             cursor: pointer;
             transition: border-color 0.2s, background 0.2s;
         }
-        .drop-zone:hover, .drop-zone.dragover {
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
             border-color: var(--hijau-tua);
             background: #f6faf8;
         }
-        .drop-zone strong { color: var(--hijau-tua); }
-        #fileInput { display: none; }
+
+        .drop-zone strong {
+            color: var(--hijau-tua);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
         .file-info {
             margin-top: 1rem;
             font-size: 0.88rem;
             color: var(--hijau-gelap);
             display: none;
         }
+
         .btn-proses {
             margin-top: 1.2rem;
             background: var(--hijau-tua);
@@ -77,8 +121,16 @@ if (!isset($conn)) {
             cursor: pointer;
             display: none;
         }
-        .btn-proses:hover { background: var(--hijau-gelap); }
-        .btn-proses:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btn-proses:hover {
+            background: var(--hijau-gelap);
+        }
+
+        .btn-proses:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         a.btn-kembali {
             display: inline-block;
             margin-top: 1rem;
@@ -87,20 +139,76 @@ if (!isset($conn)) {
             text-decoration: none;
             font-size: 0.88rem;
         }
-        .preview-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 1rem; }
-        .preview-table th, .preview-table td { border: 1px solid var(--border-soft); padding: 0.4rem 0.6rem; text-align: left; }
-        .preview-table th { background: #f6f5f1; }
-        .ringkasan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 0.8rem; margin-top: 1rem; }
-        .ringkasan-item { background: #f6f5f1; border-radius: 10px; padding: 0.9rem; text-align: center; }
-        .ringkasan-item .angka { font-size: 1.5rem; font-weight: 700; color: var(--hijau-tua); }
-        .ringkasan-item .label { font-size: 0.78rem; color: var(--abu-teks); margin-top: 0.2rem; }
-        .gagal-list { margin-top: 1rem; font-size: 0.85rem; color: #b91c1c; }
-        .gagal-list li { margin-bottom: 0.3rem; }
-        .status-msg { font-size: 0.88rem; margin-top: 0.8rem; }
-        .status-msg.error { color: #b91c1c; }
-        .status-msg.ok { color: var(--hijau-tua); }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            margin-top: 1rem;
+        }
+
+        .preview-table th,
+        .preview-table td {
+            border: 1px solid var(--border-soft);
+            padding: 0.4rem 0.6rem;
+            text-align: left;
+        }
+
+        .preview-table th {
+            background: #f6f5f1;
+        }
+
+        .ringkasan-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.8rem;
+            margin-top: 1rem;
+        }
+
+        .ringkasan-item {
+            background: #f6f5f1;
+            border-radius: 10px;
+            padding: 0.9rem;
+            text-align: center;
+        }
+
+        .ringkasan-item .angka {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--hijau-tua);
+        }
+
+        .ringkasan-item .label {
+            font-size: 0.78rem;
+            color: var(--abu-teks);
+            margin-top: 0.2rem;
+        }
+
+        .gagal-list {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: #b91c1c;
+        }
+
+        .gagal-list li {
+            margin-bottom: 0.3rem;
+        }
+
+        .status-msg {
+            font-size: 0.88rem;
+            margin-top: 0.8rem;
+        }
+
+        .status-msg.error {
+            color: #b91c1c;
+        }
+
+        .status-msg.ok {
+            color: var(--hijau-tua);
+        }
     </style>
 </head>
+
 <body>
 
     <div class="topbar">
@@ -150,18 +258,21 @@ if (!isset($conn)) {
         // persis, supaya hasil yang sudah pasti benar tidak ikut "ditebak-tebak" ulang.
         // ==========================
         function levenshtein(a, b) {
-            const m = a.length, n = b.length;
+            const m = a.length,
+                n = b.length;
             if (m === 0) return n;
             if (n === 0) return m;
-            const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+            const dp = Array.from({
+                length: m + 1
+            }, () => new Array(n + 1).fill(0));
             for (let i = 0; i <= m; i++) dp[i][0] = i;
             for (let j = 0; j <= n; j++) dp[0][j] = j;
             for (let i = 1; i <= m; i++) {
                 for (let j = 1; j <= n; j++) {
                     const cost = a[i - 1] === b[j - 1] ? 0 : 1;
                     dp[i][j] = Math.min(
-                        dp[i - 1][j] + 1,       // hapus 1 huruf
-                        dp[i][j - 1] + 1,       // tambah 1 huruf
+                        dp[i - 1][j] + 1, // hapus 1 huruf
+                        dp[i][j - 1] + 1, // tambah 1 huruf
                         dp[i - 1][j - 1] + cost // ganti 1 huruf
                     );
                 }
@@ -196,6 +307,11 @@ if (!isset($conn)) {
             'BELUM SEKOLAH': 'TIDAK SEKOLAH',
             'BELUM/TIDAK SEKOLAH': 'TIDAK SEKOLAH',
             'TIDAK/BELUM SEKOLAH': 'TIDAK SEKOLAH',
+            'TDKBELUM SEKOLAH': 'TIDAK SEKOLAH',
+            'TDK/BELUM SEKOLAH': 'TIDAK SEKOLAH',
+            'TIDAK/BELUM SEKOLAH': 'TIDAK SEKOLAH',
+            '': 'TIDAK SEKOLAH',
+
 
             'SD/SEDERAJAT': 'SD/SEDERAJAT',
             'SD': 'SD/SEDERAJAT',
@@ -270,6 +386,7 @@ if (!isset($conn)) {
 
         // Opsi baku "jenis_kelamin" di form: LAKI-LAKI, PEREMPUAN
         const JENIS_KELAMIN_FUZZY = ['LAKI-LAKI', 'LAKI LAKI', 'PEREMPUAN', 'WANITA', 'PRIA'];
+
         function normalisasiJenisKelamin(v) {
             if (!v) return '';
             const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
@@ -310,19 +427,20 @@ if (!isset($conn)) {
             'CONGHUCU': 'KONGHUCU',
         };
         const DAFTAR_KEY_AGAMA = Object.keys(MAP_AGAMA);
+
         function normalisasiAgama(v) {
             if (!v) return '';
             const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
             if (MAP_AGAMA[key]) return MAP_AGAMA[key];
             const cocokFuzzy = cariTerdekat(key, DAFTAR_KEY_AGAMA);
             if (cocokFuzzy) return MAP_AGAMA[cocokFuzzy];
-            return key; 
+            return key;
         }
         const HUBUNGAN_DIKENAL = [
             'KEPALA KELUARGA', 'SUAMI', 'ISTRI', 'ANAK', 'CUCU',
             'ORANG TUA', 'MERTUA', 'MENANTU', 'SAUDARA', 'FAMILI LAIN',
         ];
-    
+
         const MAP_HUBUNGAN = {
             'ORANGTUA': 'ORANG TUA',
             'ORANG TUA/MERTUA': 'ORANG TUA',
@@ -337,6 +455,44 @@ if (!isset($conn)) {
             if (cocokFuzzy) return cocokFuzzy;
             return 'FAMILI LAIN';
         }
+
+        // Ekstraksi alamat & RT dari teks bebas, menangani BEBERAPA format sekaligus:
+        // Format 1: "ALAMAT : xxx, NAMA DUSUN : -, RT/RW : 001/- NO RUMAH ..."
+        // Format 2: "ALAMAT : xxx RT. 01"  (tanpa label "NAMA DUSUN"/"RT/RW")
+        function ekstrakAlamatDanRT(cellC) {
+            const teks = cellC.toString();
+
+            // Ambil semua teks setelah "ALAMAT :" sebagai bahan mentah
+            const mMentah = teks.match(/ALAMAT\s*:\s*(.*)/i);
+            const sisaTeks = mMentah ? mMentah[1] : '';
+
+            // ===== RT: coba pola paling spesifik dulu, baru pola umum =====
+            let rt = '';
+            const polaRT = [
+                /RT\/RW\s*:\s*(\d+)/i, // "RT/RW : 001/-" (paling dipercaya, karena berlabel jelas)
+                /\bRT\.?\s*(\d{1,3})\b/i, // fallback: "RT. 01" atau "RT 01" di mana pun dalam teks
+            ];
+            for (const pola of polaRT) {
+                const m = teks.match(pola);
+                if (m) {
+                    rt = m[1].padStart(3, '0');
+                    break;
+                }
+            }
+
+            // ===== ALAMAT: potong di penanda pertama yang ditemukan =====
+            let alamat = sisaTeks
+                .split(/,\s*NAMA DUSUN/i)[0] // buang ", Nama Dusun : ..." kalau ada
+                .split(/,?\s*RT\/RW/i)[0] // buang ", RT/RW : ..." kalau ada
+                .replace(/,?\s*RT\.?\s*\d{1,3}\s*$/i, '') // buang "RT. 01" kalau nempel di akhir kalimat
+                .trim();
+
+            return {
+                alamat,
+                rt
+            };
+        }
+
         function excelDateToISO(v) {
             if (!v) return '';
             if (v instanceof Date && !isNaN(v)) {
@@ -361,7 +517,10 @@ if (!isset($conn)) {
         const statusMsg = document.getElementById('statusMsg');
         const previewArea = document.getElementById('previewArea');
         dropZone.addEventListener('click', () => fileInput.click());
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
         dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
@@ -381,12 +540,19 @@ if (!isset($conn)) {
             fileInfo.style.display = 'block';
             fileInfo.textContent = `File dipilih: ${file.name}`;
             const reader = new FileReader();
-            reader.onload = function (evt) {
+            reader.onload = function(evt) {
                 try {
                     const data = new Uint8Array(evt.target.result);
-                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                    const workbook = XLSX.read(data, {
+                        type: 'array',
+                        cellDates: true
+                    });
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
+                    const rows = XLSX.utils.sheet_to_json(sheet, {
+                        header: 1,
+                        raw: false,
+                        defval: ''
+                    });
                     dataKeluargaSiapKirim = parseSemuaKK(rows);
                     tampilkanPreview(dataKeluargaSiapKirim);
                 } catch (err) {
@@ -406,12 +572,15 @@ if (!isset($conn)) {
                     let status = 'PERMANEN';
                     if (/NON PERMANEN/i.test(cellRT)) status = 'NON PERMANEN';
                     else if (/PERMANEN/i.test(cellRT)) status = 'PERMANEN';
-                    statusHeaderList.push({ rowIndex: i, status: status });
+                    statusHeaderList.push({
+                        rowIndex: i,
+                        status: status
+                    });
                 }
             }
 
             function statusUntukBaris(rowIndex) {
-                let status = 'PERMANEN'; 
+                let status = 'PERMANEN';
                 for (const h of statusHeaderList) {
                     if (h.rowIndex <= rowIndex) status = h.status;
                     else break;
@@ -430,13 +599,15 @@ if (!isset($conn)) {
                 const cellA = (rowKK[0] || '').toString();
                 const cellC = (rowKK[2] || '').toString();
 
-                let nomorKK = '', rt = '', alamat = '';
+                let nomorKK = '',
+                    rt = '',
+                    alamat = '';
                 const mKK = cellA.match(/(\d{16})/);
                 if (mKK) nomorKK = mKK[1];
-                const mAlamat = cellC.match(/ALAMAT\s*:\s*(.*?),\s*NAMA DUSUN/i);
-                if (mAlamat) alamat = mAlamat[1].trim();
-                const mRT = cellC.match(/RT\/RW\s*:\s*(\d+)/i);
-                if (mRT) rt = mRT[1].padStart(3, '0');
+
+                const hasilEkstrak = ekstrakAlamatDanRT(cellC);
+                alamat = hasilEkstrak.alamat;
+                rt = hasilEkstrak.rt;
                 const endIdx = (k + 1 < indexKK.length) ? indexKK[k + 1] : rows.length;
                 const anggota = [];
                 for (let i = startIdx + 1; i < endIdx; i++) {
@@ -505,8 +676,12 @@ if (!isset($conn)) {
             try {
                 const res = await fetch('import_proses.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ keluarga: dataKeluargaSiapKirim }),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        keluarga: dataKeluargaSiapKirim
+                    }),
                 });
 
                 const contentType = res.headers.get('content-type') || '';
@@ -570,4 +745,5 @@ if (!isset($conn)) {
     </script>
 
 </body>
+
 </html>
