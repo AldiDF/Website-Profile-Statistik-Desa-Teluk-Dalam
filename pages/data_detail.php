@@ -197,7 +197,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $data_baru['kewarganegaraan'],
                         $data_baru['status_penduduk'],
                         $data_baru['hubungan_keluarga'],
-                        (int) $currentId
+                        (int) $currentId,
+                        'LENGKAP'
                     );
                 } else {
                     $stmtAnggota = tambah_data_penduduk(
@@ -213,7 +214,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         trim($kewarganegaraans[$i]),
                         trim($status_penduduks[$i]),
                         (string) $id_keluarga,
-                        trim($hubungans[$i])
+                        trim($hubungans[$i]),
+                        "LENGKAP"
                     );
                 }
 
