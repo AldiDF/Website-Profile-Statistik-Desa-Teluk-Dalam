@@ -12,18 +12,18 @@ function tambah_data_penduduk(
     string $kewarganegaraan,
     string $status_penduduk,
     string $id_keluarga,
-    string $hubungan_keluarga
+    string $hubungan_keluarga,
+    string $status_lengkap
 ) {
-
     $stmt = mysqli_prepare($conn, "INSERT INTO penduduk (
                         nik, nama_lengkap, tempat_lahir, tanggal_lahir,
                         jenis_kelamin, agama, pekerjaan,
-                        pendidikan_terakhir, kewarganegaraan, status_penduduk, id_keluarga_fk, hubungan_keluarga
-                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+                        pendidikan_terakhir, kewarganegaraan, status_penduduk, id_keluarga_fk, hubungan_keluarga, status_lengkap
+                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
 
     mysqli_stmt_bind_param(
         $stmt,
-        "ssssssssssis",
+        "sssssssssssss",   // <-- diperbaiki: 13 karakter, semua 's' (id_keluarga bertipe string)
         $nik,
         $nama_lengkap,
         $tempat_lahir,
@@ -35,7 +35,8 @@ function tambah_data_penduduk(
         $kewarganegaraan,
         $status_penduduk,
         $id_keluarga,
-        $hubungan_keluarga
+        $hubungan_keluarga,
+        $status_lengkap
     );
 
     return $stmt;
@@ -54,7 +55,8 @@ function edit_data_penduduk(
     string $kewarganegaraan,
     string $status_penduduk,
     string $hubungan_keluarga,
-    int $post_id
+    int $post_id,
+    string $status_lengkap
 ) {
     $stmt = mysqli_prepare($conn, "UPDATE penduduk SET
                         nik = ?,
@@ -67,12 +69,13 @@ function edit_data_penduduk(
                         pendidikan_terakhir = ?,
                         kewarganegaraan = ?,
                         status_penduduk = ?,
-                        hubungan_keluarga = ?
+                        hubungan_keluarga = ?,
+                        status_lengkap = ?
                     WHERE id_penduduk = ?");
 
     mysqli_stmt_bind_param(
         $stmt,
-        "sssssssssssi",
+        "sssssssssssss",   // <-- diperbaiki: 13 's' (id_keluarga bertipe string)
         $nik,
         $nama_lengkap,
         $tempat_lahir,
@@ -84,6 +87,7 @@ function edit_data_penduduk(
         $kewarganegaraan,
         $status_penduduk,
         $hubungan_keluarga,
+        $status_lengkap,
         $post_id
     );
     return $stmt;
