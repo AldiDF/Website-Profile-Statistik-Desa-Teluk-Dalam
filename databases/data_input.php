@@ -1,7 +1,7 @@
 <?php
 function tambah_data_penduduk(
     $conn,
-    string $nik,
+    ?string $nik,
     string $nama_lengkap,
     string $tempat_lahir,
     string $tanggal_lahir,
@@ -43,7 +43,7 @@ function tambah_data_penduduk(
 
 function edit_data_penduduk(
     $conn,
-    string $nik,
+    ?string $nik,
     string $nama_lengkap,
     string $tempat_lahir,
     string $tanggal_lahir,

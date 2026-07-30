@@ -1,4 +1,34 @@
 <?php
+// Jangan pernah tampilkan error PHP sebagai HTML di endpoint JSON.
+// Kalau ada warning/notice/deprecated yang lolos, tampung di buffer lalu
+// buang, supaya output ke client selalu JSON valid. Error tetap dicatat
+// ke log server untuk keperluan debugging.
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+error_reporting(E_ALL);
+ob_start();
+
+set_exception_handler(function ($e) {
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    header('Content-Type: application/json');
+    error_log('import_proses.php uncaught exception: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Terjadi kesalahan tak terduga di server.']);
+    exit;
+});
+
+register_shutdown_function(function () {
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Terjadi kesalahan fatal di server.']);
+    }
+});
+
 require '../databases/auth_check.php';
 require '../databases/connection.php';
 include '../databases/data_output.php';
@@ -64,9 +94,9 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
             $nomorAnggota = $idxA + 1;
             $nik = trim((string) ($a['nik'] ?? ''));
             $nama = bersihkan((string) ($a['nama_lengkap'] ?? ''));
-
-            if (strlen($nik) !== 16 || !ctype_digit($nik)) {
-                $ringkasan['gagal'][] = "KK $labelKK, anggota ke-$nomorAnggota: NIK tidak valid.";
+            $nikKosong = ($nik === '');
+            if (!$nikKosong && (strlen($nik) !== 16 || !ctype_digit($nik))) {
+                $ringkasan['gagal'][] = "KK $labelKK, anggota ke-$nomorAnggota: NIK tidak valid (harus 16 digit angka, atau dikosongkan jika belum ada).";
                 continue;
             }
             if ($nama === '') {
@@ -75,7 +105,7 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
             }
 
             $dataBaru = [
-                'nik'                 => $nik,
+                'nik'                 => $nikKosong ? null : $nik,
                 'nama_lengkap'        => $nama,
                 'tempat_lahir'        => bersihkan((string) ($a['tempat_lahir'] ?? '')),
                 'tanggal_lahir'       => trim((string) ($a['tanggal_lahir'] ?? '')),
@@ -160,4 +190,7 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
     }
 }
 
+while (ob_get_level() > 0) {
+    ob_end_clean();
+}
 echo json_encode(['success' => true, 'ringkasan' => $ringkasan]);

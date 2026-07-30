@@ -142,27 +142,201 @@ if (!isset($conn)) {
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
+        // ==========================
+        // FUZZY MATCHING (jarak Levenshtein)
+        // Lapisan cadangan untuk menangkap typo yang BELUM terdaftar di dictionary manual,
+        // mis. "Katholik" (tidak ada di daftar) tetap bisa ke-koreksi ke "KATOLIK" karena
+        // jaraknya cukup dekat. Dijalankan HANYA kalau dictionary tidak menemukan kecocokan
+        // persis, supaya hasil yang sudah pasti benar tidak ikut "ditebak-tebak" ulang.
+        // ==========================
+        function levenshtein(a, b) {
+            const m = a.length, n = b.length;
+            if (m === 0) return n;
+            if (n === 0) return m;
+            const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+            for (let i = 0; i <= m; i++) dp[i][0] = i;
+            for (let j = 0; j <= n; j++) dp[0][j] = j;
+            for (let i = 1; i <= m; i++) {
+                for (let j = 1; j <= n; j++) {
+                    const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                    dp[i][j] = Math.min(
+                        dp[i - 1][j] + 1,       // hapus 1 huruf
+                        dp[i][j - 1] + 1,       // tambah 1 huruf
+                        dp[i - 1][j - 1] + cost // ganti 1 huruf
+                    );
+                }
+            }
+            return dp[m][n];
+        }
+
+        // Cari kandidat dalam `daftarKandidat` yang jaraknya paling dekat dengan `teks`.
+        // Ambang batas dibuat proporsional terhadap panjang teks (bukan angka tetap),
+        // supaya kata pendek (mis. "L", "SD") tidak terlalu longgar dikoreksi,
+        // sementara kata panjang (mis. "DIPLOMA/SEDERAJAT") tetap bisa menoleransi
+        // beberapa huruf yang typo.
+        function cariTerdekat(teks, daftarKandidat, ambangRasio = 0.3) {
+            let terbaik = null;
+            let jarakTerbaik = Infinity;
+            for (const kandidat of daftarKandidat) {
+                const jarak = levenshtein(teks, kandidat);
+                const ambang = Math.max(1, Math.floor(Math.max(teks.length, kandidat.length) * ambangRasio));
+                if (jarak <= ambang && jarak < jarakTerbaik) {
+                    jarakTerbaik = jarak;
+                    terbaik = kandidat;
+                }
+            }
+            return terbaik;
+        }
+
+        // Opsi baku "pendidikan_terakhir" di form. Diploma I/II/III digabung jadi satu kategori
+        // karena data sumber (Excel Dukcapil) sering hanya menulis "DIPLOMA/SEDERAJAT" tanpa
+        // menyebutkan jenjang I/II/III secara spesifik, sehingga tidak bisa dibedakan otomatis.
         const MAP_PENDIDIKAN = {
             'TIDAK SEKOLAH': 'TIDAK SEKOLAH',
+            'BELUM SEKOLAH': 'TIDAK SEKOLAH',
+            'BELUM/TIDAK SEKOLAH': 'TIDAK SEKOLAH',
+            'TIDAK/BELUM SEKOLAH': 'TIDAK SEKOLAH',
+
             'SD/SEDERAJAT': 'SD/SEDERAJAT',
+            'SD': 'SD/SEDERAJAT',
+            'SEDERAJAT SD': 'SD/SEDERAJAT',
+            'TAMAT SD/SEDERAJAT': 'SD/SEDERAJAT',
+
             'SLTP/SEDERAJAT': 'SLTP/SEDERAJAT',
+            'SMP/SEDERAJAT': 'SLTP/SEDERAJAT',
+            'SLTP': 'SLTP/SEDERAJAT',
+            'SMP': 'SLTP/SEDERAJAT',
+
             'SLTA/SEDERAJAT': 'SLTA/SEDERAJAT',
-            'DIPLOMA I': 'DIPLOMA I',
-            'DIPLOMA II': 'DIPLOMA II',
-            'DIPLOMA III': 'DIPLOMA III',
+            'SMA/SEDERAJAT': 'SLTA/SEDERAJAT',
+            'SLTA': 'SLTA/SEDERAJAT',
+            'SMA': 'SLTA/SEDERAJAT',
+            'SMK/SEDERAJAT': 'SLTA/SEDERAJAT',
+            'SMK': 'SLTA/SEDERAJAT',
+
+            // Semua varian Diploma I/II/III (termasu teks generik "DIPLOMA/SEDERAJAT" tanpa angka)
+            // digabung jadi satu opsi "DIPLOMA I/II/III"
+            'DIPLOMA I/II/III': 'DIPLOMA I/II/III',
+            'DIPLOMA/SEDERAJAT': 'DIPLOMA I/II/III',
+            'DIPLOMA': 'DIPLOMA I/II/III',
+            'DIPLOMA I': 'DIPLOMA I/II/III',
+            'DIPLOMA II': 'DIPLOMA I/II/III',
+            'DIPLOMA III': 'DIPLOMA I/II/III',
+            'DIPLOMA I/SEDERAJAT': 'DIPLOMA I/II/III',
+            'DIPLOMA II/SEDERAJAT': 'DIPLOMA I/II/III',
+            'DIPLOMA III/SEDERAJAT': 'DIPLOMA I/II/III',
+            'D1/SEDERAJAT': 'DIPLOMA I/II/III',
+            'D2/SEDERAJAT': 'DIPLOMA I/II/III',
+            'D3/SEDERAJAT': 'DIPLOMA I/II/III',
+            'D1': 'DIPLOMA I/II/III',
+            'D2': 'DIPLOMA I/II/III',
+            'D3': 'DIPLOMA I/II/III',
+
+            // Diploma IV digabung dengan Strata I (S1), sesuai kesetaraan jenjang pendidikan resmi
             'DIPLOMA IV/STRATA I': 'DIPLOMA IV/STRATA I',
+            'DIPLOMA IV/SEDERAJAT': 'DIPLOMA IV/STRATA I',
             'D-IV/SEDERAJAT': 'DIPLOMA IV/STRATA I',
+            'D4/SEDERAJAT': 'DIPLOMA IV/STRATA I',
+            'D4': 'DIPLOMA IV/STRATA I',
             'S1/SEDERAJAT': 'DIPLOMA IV/STRATA I',
+            'S1': 'DIPLOMA IV/STRATA I',
+            'STRATA I': 'DIPLOMA IV/STRATA I',
+            'STRATA I/SEDERAJAT': 'DIPLOMA IV/STRATA I',
+
             'S2/SEDERAJAT': 'STRATA II',
+            'S2': 'STRATA II',
+            'STRATA II': 'STRATA II',
+            'STRATA II/SEDERAJAT': 'STRATA II',
+            'MAGISTER': 'STRATA II',
+
             'S3/SEDERAJAT': 'STRATA III',
+            'S3': 'STRATA III',
+            'STRATA III': 'STRATA III',
+            'STRATA III/SEDERAJAT': 'STRATA III',
+            'DOKTOR': 'STRATA III',
         };
+        const DAFTAR_KEY_PENDIDIKAN = Object.keys(MAP_PENDIDIKAN);
 
         function normalisasiPendidikan(v) {
             if (!v) return '';
-            const key = v.toString().trim().toUpperCase();
-            return MAP_PENDIDIKAN[key] || key;
+            // Rapikan spasi ganda/tidak rapi sebelum dicocokkan, mis. "S1 / SEDERAJAT" -> "S1/SEDERAJAT"
+            const key = v.toString().trim().toUpperCase().replace(/\s*\/\s*/g, '/').replace(/\s+/g, ' ');
+            if (MAP_PENDIDIKAN[key]) return MAP_PENDIDIKAN[key];
+            // Tidak ketemu persis -> coba cari istilah yang mirip (typo), mis. "DIPOLMA/SEDERAJAT"
+            const cocokFuzzy = cariTerdekat(key, DAFTAR_KEY_PENDIDIKAN);
+            if (cocokFuzzy) return MAP_PENDIDIKAN[cocokFuzzy];
+            return key; // tidak ada yang cukup mirip -> biarkan apa adanya, perlu dicek manual
         }
 
+        // Opsi baku "jenis_kelamin" di form: LAKI-LAKI, PEREMPUAN
+        const JENIS_KELAMIN_FUZZY = ['LAKI-LAKI', 'LAKI LAKI', 'PEREMPUAN', 'WANITA', 'PRIA'];
+        function normalisasiJenisKelamin(v) {
+            if (!v) return '';
+            const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
+            if (key === 'L' || key === 'LK' || key === 'LAKI2' || /^LAKI[\s-]*LAKI$/.test(key)) {
+                return 'LAKI-LAKI'; // menambahkan strip kalau sebelumnya tertulis "LAKI LAKI"/"LAKI2"/dll
+            }
+            if (key === 'P' || key === 'PR' || key === 'WANITA' || key === 'PEREMPUAN') {
+                return 'PEREMPUAN';
+            }
+            if (key.length > 2) {
+                const cocokFuzzy = cariTerdekat(key, JENIS_KELAMIN_FUZZY);
+                if (cocokFuzzy === 'LAKI-LAKI' || cocokFuzzy === 'LAKI LAKI' || cocokFuzzy === 'PRIA') return 'LAKI-LAKI';
+                if (cocokFuzzy === 'PEREMPUAN' || cocokFuzzy === 'WANITA') return 'PEREMPUAN';
+            }
+            return key;
+        }
+        const MAP_AGAMA = {
+            'ISLAM': 'ISLAM',
+            'MUSLIM': 'ISLAM',
+
+            'KRISTEN': 'KRISTEN',
+            'KRISTEN PROTESTAN': 'KRISTEN',
+            'PROTESTAN': 'KRISTEN',
+
+            'KATOLIK': 'KATOLIK',
+            'KATHOLIK': 'KATOLIK',
+            'KATOLIK ROMA': 'KATOLIK',
+
+            'HINDU': 'HINDU',
+            'HINDHU': 'HINDU',
+
+            'BUDDHA': 'BUDDHA',
+            'BUDHA': 'BUDDHA',
+            'BUDHHA': 'BUDDHA',
+
+            'KONGHUCU': 'KONGHUCU',
+            'KHONGHUCU': 'KONGHUCU',
+            'CONGHUCU': 'KONGHUCU',
+        };
+        const DAFTAR_KEY_AGAMA = Object.keys(MAP_AGAMA);
+        function normalisasiAgama(v) {
+            if (!v) return '';
+            const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
+            if (MAP_AGAMA[key]) return MAP_AGAMA[key];
+            const cocokFuzzy = cariTerdekat(key, DAFTAR_KEY_AGAMA);
+            if (cocokFuzzy) return MAP_AGAMA[cocokFuzzy];
+            return key; 
+        }
+        const HUBUNGAN_DIKENAL = [
+            'KEPALA KELUARGA', 'SUAMI', 'ISTRI', 'ANAK', 'CUCU',
+            'ORANG TUA', 'MERTUA', 'MENANTU', 'SAUDARA', 'FAMILI LAIN',
+        ];
+    
+        const MAP_HUBUNGAN = {
+            'ORANGTUA': 'ORANG TUA',
+            'ORANG TUA/MERTUA': 'ORANG TUA',
+        };
+
+        function normalisasiHubungan(v) {
+            if (!v) return '';
+            const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
+            if (MAP_HUBUNGAN[key]) return MAP_HUBUNGAN[key];
+            if (HUBUNGAN_DIKENAL.includes(key)) return key;
+            const cocokFuzzy = cariTerdekat(key, HUBUNGAN_DIKENAL, 0.2);
+            if (cocokFuzzy) return cocokFuzzy;
+            return 'FAMILI LAIN';
+        }
         function excelDateToISO(v) {
             if (!v) return '';
             if (v instanceof Date && !isNaN(v)) {
@@ -179,16 +353,13 @@ if (!isset($conn)) {
             }
             return '';
         }
-
         let dataKeluargaSiapKirim = [];
-
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileInfo = document.getElementById('fileInfo');
         const btnProses = document.getElementById('btnProses');
         const statusMsg = document.getElementById('statusMsg');
         const previewArea = document.getElementById('previewArea');
-
         dropZone.addEventListener('click', () => fileInput.click());
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
         dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
@@ -209,7 +380,6 @@ if (!isset($conn)) {
             statusMsg.className = 'status-msg';
             fileInfo.style.display = 'block';
             fileInfo.textContent = `File dipilih: ${file.name}`;
-
             const reader = new FileReader();
             reader.onload = function (evt) {
                 try {
@@ -228,10 +398,6 @@ if (!isset($conn)) {
         }
 
         function parseSemuaKK(rows) {
-            // Deteksi status penduduk per BLOK header "PERIODE/TANGGAL ... RT : 1 ( PENDUDUK PERMANEN/NON PERMANEN)".
-            // Satu file bisa berisi lebih dari satu blok header (mis. PERMANEN di atas, NON PERMANEN di bawah),
-            // jadi status yang dipakai harus mengikuti header TERDEKAT SEBELUM tiap KK, bukan header terakhir
-            // yang ditemukan di seluruh file (kalau tidak, KK di blok pertama akan salah ikut status blok terakhir).
             const statusHeaderList = []; // { rowIndex, status }
             for (let i = 0; i < rows.length; i++) {
                 const cellA = (rows[i][0] || '').toString().trim().toUpperCase();
@@ -245,23 +411,19 @@ if (!isset($conn)) {
             }
 
             function statusUntukBaris(rowIndex) {
-                let status = 'PERMANEN'; // default kalau belum ada header PERIODE sebelum baris ini
+                let status = 'PERMANEN'; 
                 for (const h of statusHeaderList) {
                     if (h.rowIndex <= rowIndex) status = h.status;
                     else break;
                 }
                 return status;
             }
-
-            // Cari indeks tiap baris "No. KK : ..."
             const indexKK = [];
             for (let i = 0; i < rows.length; i++) {
                 const cellA = (rows[i][0] || '').toString().trim().toUpperCase();
                 if (cellA.startsWith('NO. KK')) indexKK.push(i);
             }
-
             const hasil = [];
-
             indexKK.forEach((startIdx, k) => {
                 const statusPendudukHeader = statusUntukBaris(startIdx);
                 const rowKK = rows[startIdx];
@@ -275,10 +437,8 @@ if (!isset($conn)) {
                 if (mAlamat) alamat = mAlamat[1].trim();
                 const mRT = cellC.match(/RT\/RW\s*:\s*(\d+)/i);
                 if (mRT) rt = mRT[1].padStart(3, '0');
-
                 const endIdx = (k + 1 < indexKK.length) ? indexKK[k + 1] : rows.length;
                 const anggota = [];
-
                 for (let i = startIdx + 1; i < endIdx; i++) {
                     const row = rows[i];
                     const nama = (row[1] || '').toString().trim();
@@ -290,9 +450,9 @@ if (!isset($conn)) {
                         nama_lengkap: nama,
                         tempat_lahir: (row[3] || '').toString().trim(),
                         tanggal_lahir: excelDateToISO(row[4]),
-                        jenis_kelamin: (row[5] || '').toString().trim().toUpperCase(),
-                        hubungan_keluarga: (row[6] || '').toString().trim().toUpperCase(),
-                        agama: (row[7] || '').toString().trim().toUpperCase(),
+                        jenis_kelamin: normalisasiJenisKelamin(row[5]),
+                        hubungan_keluarga: normalisasiHubungan(row[6]),
+                        agama: normalisasiAgama(row[7]),
                         pendidikan_terakhir: normalisasiPendidikan(row[8]),
                         pekerjaan: (row[9] || '').toString().trim(),
                         kewarganegaraan: 'WNI',

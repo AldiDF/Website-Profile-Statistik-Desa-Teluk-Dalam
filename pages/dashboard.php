@@ -7,14 +7,11 @@ if (!isset($conn)) {
 }
 $rt_filter = "";
 if (isset($_GET['rt']) && $_GET['rt'] !== "") {
-    // Ambil hanya digitnya saja, supaya "1", "01", "001" dianggap sama
     $rt_digits = preg_replace('/\D/', '', $_GET['rt']);
     if ($rt_digits !== "") {
         $rt_filter = $rt_digits;
     }
 }
-
-// Filter penduduk tetap (PERMANEN) / tidak tetap (NON PERMANEN)
 $status_penduduk_filter = "";
 $status_penduduk_valid  = ['PERMANEN', 'NON PERMANEN'];
 if (isset($_GET['status_penduduk']) && in_array($_GET['status_penduduk'], $status_penduduk_valid, true)) {
@@ -27,12 +24,12 @@ $resultRT = mysqli_query($conn, $queryRT);
 
 if ($resultRT) {
     while ($rowRT = mysqli_fetch_assoc($resultRT)) {
-        $daftar_rt[] = (int) $rowRT['rt_num']; // <-- kunci perbaikannya di sini
+        $daftar_rt[] = (int) $rowRT['rt_num']; 
     }
     mysqli_free_result($resultRT);
 }
 
-// Daftar RT yang ditampilkan sebagai tombol filter (tetap RT 1 - 4)
+
 
 $data_penduduk = [];
 

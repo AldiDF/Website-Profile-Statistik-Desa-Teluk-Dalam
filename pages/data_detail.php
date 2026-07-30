@@ -36,19 +36,11 @@ $anggota_kosong = [
 
 $anggota_list = [];
 $original_ids = "";
-
-// ==========================
-// TENTUKAN MODE (Tambah / Edit)
-// ==========================
 if (isset($_GET['id_keluarga']) && is_numeric($_GET['id_keluarga'])) {
     $mode = "edit";
     $title_page = "Edit Data Keluarga";
     $id_keluarga = (int) $_GET['id_keluarga'];
 }
-
-// ==========================
-// PROSES SUBMIT (Tambah / Update sekaligus semua anggota)
-// ==========================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $mode        = $_POST['form_mode'] === 'edit' ? 'edit' : 'tambah';
     $title_page  = $mode === 'edit' ? "Edit Data Keluarga" : "Tambah Data Keluarga";
@@ -89,10 +81,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "hubungan_keluarga"   => $hubungans[$i] ?? '',
         ];
     }
-
-    // ==========================
-    // VALIDASI
-    // ==========================
     if (strlen($keluarga['nomor_kk']) !== 16 || !ctype_digit($keluarga['nomor_kk'])) {
         $error = "Nomor KK harus terdiri dari 16 digit angka.";
     } elseif (empty($niks)) {
@@ -121,7 +109,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($id_keluarga === null) {
                     throw new Exception("ID Keluarga tidak valid.");
                 }
-                // Cek nomor KK tidak dipakai keluarga lain
                 $stmtCek = mysqli_prepare($conn, "SELECT id_keluarga FROM keluarga WHERE nomor_kk = ? AND id_keluarga != ?");
                 mysqli_stmt_bind_param($stmtCek, "si", $keluarga['nomor_kk'], $id_keluarga);
                 mysqli_stmt_execute($stmtCek);
@@ -130,8 +117,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception("Nomor KK tersebut sudah dipakai oleh keluarga lain.");
                 }
                 mysqli_stmt_close($stmtCek);
-
-                // Cek dulu apakah data keluarga benar-benar berubah, supaya tidak query sia-sia
                 $data_keluarga_lama = ambil_data_keluarga($conn, $id_keluarga);
                 $keluarga_berubah = (
                     $data_keluarga_lama === null ||
@@ -165,14 +150,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception("Gagal menyimpan data keluarga baru.");
                 }
             }
-
-            // Simpan / update tiap anggota
             foreach ($niks as $i => $nik) {
                 $currentId = trim($id_penduduks[$i] ?? '');
 
                 if ($currentId !== '') {
-                    // Bandingkan dulu dengan data lama di database; kalau tidak ada
-                    // perubahan sama sekali, lewati query UPDATE untuk anggota ini.
                     $data_lama = ambil_data_penduduk_by_id($conn, (int) $currentId);
                     $data_baru = [
                         'nik'                 => trim($niks[$i]),
@@ -302,9 +283,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// ==========================
-// HELPER: render satu blok form anggota
-// ==========================
 function opsi_select($nama_opsi, $daftar, $terpilih)
 {
     $html = '';
@@ -315,20 +293,14 @@ function opsi_select($nama_opsi, $daftar, $terpilih)
     return $html;
 }
 
-/**
- * Membersihkan 1 nilai string: trim, hapus spasi ganda, uppercase.
- */
 function bersihkan_input(string $value): string
 {
     $value = trim($value);
-    $value = preg_replace('/\s+/', ' ', $value); // banyak spasi -> 1 spasi
+    $value = preg_replace('/\s+/', ' ', $value);
     $value = strtoupper($value);
     return $value;
 }
 
-/**
- * Membersihkan array of string (misal $_POST['nama_lengkap'] yang berupa array).
- */
 function bersihkan_input_array(array $values): array
 {
     return array_map('bersihkan_input', $values);
@@ -394,9 +366,7 @@ function render_anggota_block($a, $nomor)
                         'SD/SEDERAJAT',
                         'SLTP/SEDERAJAT',
                         'SLTA/SEDERAJAT',
-                        'DIPLOMA I',
-                        'DIPLOMA II',
-                        'DIPLOMA III',
+                        'DIPLOMA I/II/III',
                         'DIPLOMA IV/STRATA I',
                         'STRATA II',
                         'STRATA III'
@@ -821,25 +791,192 @@ function render_anggota_block($a, $nomor)
         // ==========================
         // IMPORT DARI EXCEL (format standar Data Keluarga)
         // ==========================
+        // ==========================
+        // FUZZY MATCHING (jarak Levenshtein)
+        // Lapisan cadangan untuk menangkap typo yang BELUM terdaftar di dictionary manual,
+        // mis. "Katholik" (tidak ada di daftar) tetap bisa ke-koreksi ke "KATOLIK" karena
+        // jaraknya cukup dekat. Dijalankan HANYA kalau dictionary tidak menemukan kecocokan
+        // persis, supaya hasil yang sudah pasti benar tidak ikut "ditebak-tebak" ulang.
+        // ==========================
+        function levenshtein(a, b) {
+            const m = a.length, n = b.length;
+            if (m === 0) return n;
+            if (n === 0) return m;
+            const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+            for (let i = 0; i <= m; i++) dp[i][0] = i;
+            for (let j = 0; j <= n; j++) dp[0][j] = j;
+            for (let i = 1; i <= m; i++) {
+                for (let j = 1; j <= n; j++) {
+                    const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                    dp[i][j] = Math.min(
+                        dp[i - 1][j] + 1,       // hapus 1 huruf
+                        dp[i][j - 1] + 1,       // tambah 1 huruf
+                        dp[i - 1][j - 1] + cost // ganti 1 huruf
+                    );
+                }
+            }
+            return dp[m][n];
+        }
+
+        // Cari kandidat dalam `daftarKandidat` yang jaraknya paling dekat dengan `teks`.
+        // Ambang batas dibuat proporsional terhadap panjang teks (bukan angka tetap),
+        // supaya kata pendek (mis. "L", "SD") tidak terlalu longgar dikoreksi,
+        // sementara kata panjang (mis. "DIPLOMA/SEDERAJAT") tetap bisa menoleransi
+        // beberapa huruf yang typo.
+        function cariTerdekat(teks, daftarKandidat, ambangRasio = 0.3) {
+            let terbaik = null;
+            let jarakTerbaik = Infinity;
+            for (const kandidat of daftarKandidat) {
+                const jarak = levenshtein(teks, kandidat);
+                const ambang = Math.max(1, Math.floor(Math.max(teks.length, kandidat.length) * ambangRasio));
+                if (jarak <= ambang && jarak < jarakTerbaik) {
+                    jarakTerbaik = jarak;
+                    terbaik = kandidat;
+                }
+            }
+            return terbaik;
+        }
+
+        // Opsi baku "pendidikan_terakhir" di form. Diploma I/II/III digabung jadi satu kategori
+        // karena data sumber (Excel Dukcapil) sering hanya menulis "DIPLOMA/SEDERAJAT" tanpa
+        // menyebutkan jenjang I/II/III secara spesifik, sehingga tidak bisa dibedakan otomatis.
         const MAP_PENDIDIKAN = {
             'TIDAK SEKOLAH': 'TIDAK SEKOLAH',
+            'BELUM SEKOLAH': 'TIDAK SEKOLAH',
+            'BELUM/TIDAK SEKOLAH': 'TIDAK SEKOLAH',
+            'TIDAK/BELUM SEKOLAH': 'TIDAK SEKOLAH',
+
             'SD/SEDERAJAT': 'SD/SEDERAJAT',
+            'SD': 'SD/SEDERAJAT',
+            'SEDERAJAT SD': 'SD/SEDERAJAT',
+            'TAMAT SD/SEDERAJAT': 'SD/SEDERAJAT',
+
             'SLTP/SEDERAJAT': 'SLTP/SEDERAJAT',
+            'SMP/SEDERAJAT': 'SLTP/SEDERAJAT',
+            'SLTP': 'SLTP/SEDERAJAT',
+            'SMP': 'SLTP/SEDERAJAT',
+
             'SLTA/SEDERAJAT': 'SLTA/SEDERAJAT',
-            'DIPLOMA I': 'DIPLOMA I',
-            'DIPLOMA II': 'DIPLOMA II',
-            'DIPLOMA III': 'DIPLOMA III',
+            'SMA/SEDERAJAT': 'SLTA/SEDERAJAT',
+            'SLTA': 'SLTA/SEDERAJAT',
+            'SMA': 'SLTA/SEDERAJAT',
+            'SMK/SEDERAJAT': 'SLTA/SEDERAJAT',
+            'SMK': 'SLTA/SEDERAJAT',
+
+           
+            'DIPLOMA I/II/III': 'DIPLOMA I/II/III',
+            'DIPLOMA/SEDERAJAT': 'DIPLOMA I/II/III',
+            'DIPLOMA': 'DIPLOMA I/II/III',
+            'DIPLOMA I': 'DIPLOMA I/II/III',
+            'DIPLOMA II': 'DIPLOMA I/II/III',
+            'DIPLOMA III': 'DIPLOMA I/II/III',
+            'DIPLOMA I/SEDERAJAT': 'DIPLOMA I/II/III',
+            'DIPLOMA II/SEDERAJAT': 'DIPLOMA I/II/III',
+            'DIPLOMA III/SEDERAJAT': 'DIPLOMA I/II/III',
+            'D1/SEDERAJAT': 'DIPLOMA I/II/III',
+            'D2/SEDERAJAT': 'DIPLOMA I/II/III',
+            'D3/SEDERAJAT': 'DIPLOMA I/II/III',
+            'D1': 'DIPLOMA I/II/III',
+            'D2': 'DIPLOMA I/II/III',
+            'D3': 'DIPLOMA I/II/III',
             'DIPLOMA IV/STRATA I': 'DIPLOMA IV/STRATA I',
+            'DIPLOMA IV/SEDERAJAT': 'DIPLOMA IV/STRATA I',
             'D-IV/SEDERAJAT': 'DIPLOMA IV/STRATA I',
+            'D4/SEDERAJAT': 'DIPLOMA IV/STRATA I',
+            'D4': 'DIPLOMA IV/STRATA I',
             'S1/SEDERAJAT': 'DIPLOMA IV/STRATA I',
+            'S1': 'DIPLOMA IV/STRATA I',
+            'STRATA I': 'DIPLOMA IV/STRATA I',
+            'STRATA I/SEDERAJAT': 'DIPLOMA IV/STRATA I',
+
             'S2/SEDERAJAT': 'STRATA II',
+            'S2': 'STRATA II',
+            'STRATA II': 'STRATA II',
+            'STRATA II/SEDERAJAT': 'STRATA II',
+            'MAGISTER': 'STRATA II',
+
             'S3/SEDERAJAT': 'STRATA III',
+            'S3': 'STRATA III',
+            'STRATA III': 'STRATA III',
+            'STRATA III/SEDERAJAT': 'STRATA III',
+            'DOKTOR': 'STRATA III',
         };
+        const DAFTAR_KEY_PENDIDIKAN = Object.keys(MAP_PENDIDIKAN);
 
         function normalisasiPendidikan(v) {
             if (!v) return '';
-            const key = v.toString().trim().toUpperCase();
-            return MAP_PENDIDIKAN[key] || key;
+            const key = v.toString().trim().toUpperCase().replace(/\s*\/\s*/g, '/').replace(/\s+/g, ' ');
+            if (MAP_PENDIDIKAN[key]) return MAP_PENDIDIKAN[key];
+            const cocokFuzzy = cariTerdekat(key, DAFTAR_KEY_PENDIDIKAN);
+            if (cocokFuzzy) return MAP_PENDIDIKAN[cocokFuzzy];
+            return key;
+        }
+        const JENIS_KELAMIN_FUZZY = ['LAKI-LAKI', 'LAKI LAKI', 'PEREMPUAN', 'WANITA', 'PRIA'];
+        function normalisasiJenisKelamin(v) {
+            if (!v) return '';
+            const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
+            if (key === 'L' || key === 'LK' || key === 'LAKI2' || /^LAKI[\s-]*LAKI$/.test(key)) {
+                return 'LAKI-LAKI'; // menambahkan strip kalau sebelumnya tertulis "LAKI LAKI"/"LAKI2"/dll
+            }
+            if (key === 'P' || key === 'PR' || key === 'WANITA' || key === 'PEREMPUAN') {
+                return 'PEREMPUAN';
+            }
+            if (key.length > 2) {
+                const cocokFuzzy = cariTerdekat(key, JENIS_KELAMIN_FUZZY);
+                if (cocokFuzzy === 'LAKI-LAKI' || cocokFuzzy === 'LAKI LAKI' || cocokFuzzy === 'PRIA') return 'LAKI-LAKI';
+                if (cocokFuzzy === 'PEREMPUAN' || cocokFuzzy === 'WANITA') return 'PEREMPUAN';
+            }
+            return key;
+        }const MAP_AGAMA = {
+            'ISLAM': 'ISLAM',
+            'MUSLIM': 'ISLAM',
+
+            'KRISTEN': 'KRISTEN',
+            'KRISTEN PROTESTAN': 'KRISTEN',
+            'PROTESTAN': 'KRISTEN',
+
+            'KATOLIK': 'KATOLIK',
+            'KATHOLIK': 'KATOLIK',
+            'KATOLIK ROMA': 'KATOLIK',
+
+            'HINDU': 'HINDU',
+            'HINDHU': 'HINDU',
+
+            'BUDDHA': 'BUDDHA',
+            'BUDHA': 'BUDDHA',
+            'BUDHHA': 'BUDDHA',
+
+            'KONGHUCU': 'KONGHUCU',
+            'KHONGHUCU': 'KONGHUCU',
+            'CONGHUCU': 'KONGHUCU',
+        };
+        const DAFTAR_KEY_AGAMA = Object.keys(MAP_AGAMA);
+
+        function normalisasiAgama(v) {
+            if (!v) return '';
+            const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
+            if (MAP_AGAMA[key]) return MAP_AGAMA[key];
+           
+            const cocokFuzzy = cariTerdekat(key, DAFTAR_KEY_AGAMA);
+            if (cocokFuzzy) return MAP_AGAMA[cocokFuzzy];
+            return key; 
+        }const HUBUNGAN_DIKENAL = [
+            'KEPALA KELUARGA', 'SUAMI', 'ISTRI', 'ANAK', 'CUCU',
+            'ORANG TUA', 'MERTUA', 'MENANTU', 'SAUDARA', 'FAMILI LAIN',
+        ];
+        const MAP_HUBUNGAN = {
+            'ORANGTUA': 'ORANG TUA',
+            'ORANG TUA/MERTUA': 'ORANG TUA',
+        };
+        function normalisasiHubungan(v) {
+            if (!v) return '';
+            const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
+            if (MAP_HUBUNGAN[key]) return MAP_HUBUNGAN[key];
+            if (HUBUNGAN_DIKENAL.includes(key)) return key;
+            const cocokFuzzy = cariTerdekat(key, HUBUNGAN_DIKENAL, 0.2);
+            if (cocokFuzzy) return cocokFuzzy;
+
+            return 'FAMILI LAIN';
         }
 
         function excelDateToISO(v) {
@@ -883,7 +1020,7 @@ function render_anggota_block($a, $nomor)
 
         document.getElementById('importExcelInput').addEventListener('change', function (e) {
             const file = e.target.files[0];
-            e.target.value = ''; // supaya file yang sama bisa dipilih lagi kalau perlu
+            e.target.value = '';
             if (!file) return;
 
             if (!anggotaBlockKosongDiForm()) {
@@ -994,9 +1131,9 @@ function render_anggota_block($a, $nomor)
                 const nik = (row[2] || '').toString().trim();
                 const tempatLahir = (row[3] || '').toString().trim();
                 const tglLahir = excelDateToISO(row[4]);
-                const jk = (row[5] || '').toString().trim().toUpperCase();
-                const hubungan = (row[6] || '').toString().trim().toUpperCase();
-                const agama = (row[7] || '').toString().trim().toUpperCase();
+                const jk = normalisasiJenisKelamin(row[5]);
+                const hubungan = normalisasiHubungan(row[6]);
+                const agama = normalisasiAgama(row[7]);
                 const pendidikan = normalisasiPendidikan(row[8]);
                 const pekerjaan = (row[9] || '').toString().trim();
 
@@ -1091,9 +1228,7 @@ function render_anggota_block($a, $nomor)
                             <option value="SD/SEDERAJAT">SD/SEDERAJAT</option>
                             <option value="SLTP/SEDERAJAT">SLTP/SEDERAJAT</option>
                             <option value="SLTA/SEDERAJAT">SLTA/SEDERAJAT</option>
-                            <option value="DIPLOMA I">DIPLOMA I</option>
-                            <option value="DIPLOMA II">DIPLOMA II</option>
-                            <option value="DIPLOMA III">DIPLOMA III</option>
+                            <option value="DIPLOMA I/II/III">DIPLOMA I/II/III</option>
                             <option value="DIPLOMA IV/STRATA I">DIPLOMA IV/STRATA I</option>
                             <option value="STRATA II">STRATA II</option>
                             <option value="STRATA III">STRATA III</option>
