@@ -5,6 +5,7 @@ require '../databases/connection.php';
 if (!isset($conn)) {
     die("Koneksi database tidak tersedia.");
 }
+
 $rt_filter = "";
 if (isset($_GET['rt']) && $_GET['rt'] !== "") {
     $rt_digits = preg_replace('/\D/', '', $_GET['rt']);
@@ -12,24 +13,31 @@ if (isset($_GET['rt']) && $_GET['rt'] !== "") {
         $rt_filter = $rt_digits;
     }
 }
+
 $status_penduduk_filter = "";
 $status_penduduk_valid  = ['PERMANEN', 'NON PERMANEN'];
 if (isset($_GET['status_penduduk']) && in_array($_GET['status_penduduk'], $status_penduduk_valid, true)) {
     $status_penduduk_filter = $_GET['status_penduduk'];
 }
 
+// ==========================
+// FILTER TAMPILAN KHUSUS: MENINGGAL / TIDAK LENGKAP
+// Kalau salah satu aktif, tampilan NORMAL (LENGKAP + PERMANEN/NON PERMANEN) dilewati
+// ==========================
+$tampilan_khusus = "";
+if (isset($_GET['tampilan']) && in_array($_GET['tampilan'], ['meninggal', 'tidak_lengkap'], true)) {
+    $tampilan_khusus = $_GET['tampilan'];
+}
+
 $daftar_rt = [];
 $queryRT = "SELECT DISTINCT CAST(rt AS UNSIGNED) AS rt_num FROM keluarga ORDER BY rt_num ASC";
 $resultRT = mysqli_query($conn, $queryRT);
-
 if ($resultRT) {
     while ($rowRT = mysqli_fetch_assoc($resultRT)) {
-        $daftar_rt[] = (int) $rowRT['rt_num']; 
+        $daftar_rt[] = (int) $rowRT['rt_num'];
     }
     mysqli_free_result($resultRT);
 }
-
-
 
 $data_penduduk = [];
 
@@ -48,20 +56,38 @@ $query = "
         p.pendidikan_terakhir,
         p.kewarganegaraan,
         p.status_penduduk,
+        p.status_lengkap,
         p.hubungan_keluarga,
         k.rt,
         k.alamat_domisili
     FROM penduduk p
-    JOIN keluarga k ON p.id_keluarga_fk = k.id_keluarga
+    LEFT JOIN keluarga k ON p.id_keluarga_fk = k.id_keluarga
 ";
+// LEFT JOIN (bukan INNER JOIN) supaya baris yang id_keluarga_fk-nya masih NULL
+// (misal hasil import massal yang datanya belum lengkap) tetap ikut tampil,
+// bukan hilang begitu saja dari dashboard.
 
 $where = [];
+
 if ($rt_filter !== "") {
     $where[] = "CAST(k.rt AS UNSIGNED) = " . (int) $rt_filter;
 }
-if ($status_penduduk_filter !== "") {
-    $where[] = "p.status_penduduk = '" . mysqli_real_escape_string($conn, $status_penduduk_filter) . "'";
+
+if ($tampilan_khusus === 'meninggal') {
+    // Tampilkan HANYA yang berstatus MENINGGAL, apa pun status_lengkap-nya
+    $where[] = "p.status_penduduk = 'MENINGGAL'";
+} elseif ($tampilan_khusus === 'tidak_lengkap') {
+    // Tampilkan HANYA data yang belum lengkap, apa pun status_penduduk-nya
+    $where[] = "p.status_lengkap = 'TIDAK LENGKAP'";
+} else {
+    // TAMPILAN NORMAL (default dashboard): hanya data LENGKAP dan berstatus PERMANEN/NON PERMANEN
+    $where[] = "p.status_lengkap = 'LENGKAP'";
+    $where[] = "p.status_penduduk IN ('PERMANEN', 'NON PERMANEN')";
+    if ($status_penduduk_filter !== "") {
+        $where[] = "p.status_penduduk = '" . mysqli_real_escape_string($conn, $status_penduduk_filter) . "'";
+    }
 }
+
 if (!empty($where)) {
     $query .= " WHERE " . implode(" AND ", $where) . " ";
 }
@@ -69,7 +95,6 @@ if (!empty($where)) {
 $query .= " ORDER BY k.rt ASC, k.nomor_kk ASC, p.id_penduduk ASC ";
 
 $result = mysqli_query($conn, $query);
-
 
 if ($result) {
     while ($row = mysqli_fetch_assoc($result)) {
@@ -81,10 +106,15 @@ if ($result) {
 }
 
 $total_penduduk  = count($data_penduduk);
-$total_kk        = count(array_unique(array_column($data_penduduk, 'nomor_kk')));
-$total_laki      = count(array_filter($data_penduduk, fn($p) => strtoupper($p['jenis_kelamin']) === 'LAKI-LAKI'));
-$total_perempuan = count(array_filter($data_penduduk, fn($p) => strtoupper($p['jenis_kelamin']) === 'PEREMPUAN'));
+$total_kk        = count(array_unique(array_filter(array_column($data_penduduk, 'nomor_kk'))));
+$total_laki      = count(array_filter($data_penduduk, fn($p) => strtoupper((string) $p['jenis_kelamin']) === 'LAKI-LAKI'));
+$total_perempuan = count(array_filter($data_penduduk, fn($p) => strtoupper((string) $p['jenis_kelamin']) === 'PEREMPUAN'));
 
+// Helper untuk class CSS yang aman dari spasi (mis. "NON PERMANEN" -> "non-permanen")
+function cls($v)
+{
+    return str_replace(' ', '-', strtolower(trim((string) ($v ?? ''))));
+}
 // ==========================
 // KELOMPOKKAN DATA PER KK (meniru struktur excel)
 // ==========================
@@ -140,6 +170,7 @@ function hitung_umur($tanggal_lahir)
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -158,8 +189,17 @@ function hitung_umur($tanggal_lahir)
             --bg: #f6f5f1;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', 'Segoe UI', Arial, sans-serif; }
-        body { background: var(--bg); color: #2b2b28; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: #2b2b28;
+        }
 
         .navbar {
             background: var(--hijau-tua);
@@ -168,25 +208,33 @@ function hitung_umur($tanggal_lahir)
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         }
+
         .navbar .brand {
             display: flex;
             align-items: center;
             gap: 0.7rem;
         }
+
         .navbar .brand img {
             width: 35px;
             height: 40px;
             border-radius: 50%;
             display: block;
         }
-        .navbar h1 { font-size: 1.15rem; font-weight: 600; }
+
+        .navbar h1 {
+            font-size: 1.15rem;
+            font-weight: 600;
+        }
+
         .navbar .nav-menu {
             display: flex;
             align-items: center;
             gap: 0.4rem;
         }
+
         .navbar .nav-menu a {
             color: #fff;
             text-decoration: none;
@@ -197,20 +245,24 @@ function hitung_umur($tanggal_lahir)
             opacity: 0.85;
             transition: background 0.2s, opacity 0.2s;
         }
+
         .navbar .nav-menu a:hover {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             opacity: 1;
         }
+
         .navbar .nav-menu a.active {
             background: var(--emas);
             color: var(--hijau-gelap);
             opacity: 1;
         }
+
         .navbar .nav-right {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
+
         .navbar .halo {
             font-size: 0.9rem;
             font-weight: 300;
@@ -220,7 +272,9 @@ function hitung_umur($tanggal_lahir)
             border: 1px solid rgba(244, 180, 0, 0.4);
         }
 
-        .container { padding: 1.5rem 2rem; }
+        .container {
+            padding: 1.5rem 2rem;
+        }
 
         .stats-grid {
             display: grid;
@@ -228,6 +282,7 @@ function hitung_umur($tanggal_lahir)
             gap: 1rem;
             margin-bottom: 1.5rem;
         }
+
         .alert-status {
             background: #dcfce7;
             color: #15803d;
@@ -242,22 +297,41 @@ function hitung_umur($tanggal_lahir)
             background: #fff;
             border-radius: 12px;
             padding: 1.2rem 1.5rem;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
             border-left: 5px solid var(--hijau-tua);
         }
-        .stat-card.kk { border-left-color: var(--emas); }
-        .stat-card.laki { border-left-color: #2a78d6; }
-        .stat-card.perempuan { border-left-color: #e87ba4; }
 
-        .stat-card .label { font-size: 0.85rem; color: var(--abu-teks); margin-bottom: 0.3rem; }
-        .stat-card .value { font-size: 1.8rem; font-weight: 700; color: var(--hijau-tua); }
+        .stat-card.kk {
+            border-left-color: var(--emas);
+        }
+
+        .stat-card.laki {
+            border-left-color: #2a78d6;
+        }
+
+        .stat-card.perempuan {
+            border-left-color: #e87ba4;
+        }
+
+        .stat-card .label {
+            font-size: 0.85rem;
+            color: var(--abu-teks);
+            margin-bottom: 0.3rem;
+        }
+
+        .stat-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--hijau-tua);
+        }
 
         .table-card {
             background: #fff;
             border-radius: 12px;
             padding: 1.5rem;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
         }
+
         .table-header {
             display: flex;
             justify-content: space-between;
@@ -266,7 +340,12 @@ function hitung_umur($tanggal_lahir)
             flex-wrap: wrap;
             gap: 0.5rem;
         }
-        .table-header h2 { font-size: 1.1rem; color: var(--hijau-tua); font-weight: 600; }
+
+        .table-header h2 {
+            font-size: 1.1rem;
+            color: var(--hijau-tua);
+            font-weight: 600;
+        }
 
         .search-box {
             padding: 0.55rem 0.9rem;
@@ -276,6 +355,7 @@ function hitung_umur($tanggal_lahir)
             font-size: 0.9rem;
             font-family: inherit;
         }
+
         .search-box:focus {
             outline: none;
             border-color: var(--emas);
@@ -289,6 +369,7 @@ function hitung_umur($tanggal_lahir)
             margin-bottom: 1.2rem;
             flex-wrap: wrap;
         }
+
         .rt-filter a {
             text-decoration: none;
             color: var(--hijau-tua);
@@ -300,17 +381,28 @@ function hitung_umur($tanggal_lahir)
             font-weight: 600;
             transition: all 0.2s;
         }
+
         .rt-filter a:hover {
             border-color: var(--emas);
         }
+
         .rt-filter a.active {
             background: var(--hijau-tua);
             color: #fff;
             border-color: var(--hijau-tua);
         }
 
-        .table-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 1500px; }
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 1500px;
+        }
+
         thead th {
             background: #f3f2ec;
             text-align: left;
@@ -320,12 +412,16 @@ function hitung_umur($tanggal_lahir)
             color: var(--hijau-tua);
             font-weight: 600;
         }
+
         tbody td {
             padding: 0.6rem;
             border-bottom: 1px solid #f1f0ea;
             white-space: nowrap;
         }
-        tbody tr:hover { background: #faf9f5; }
+
+        tbody tr:hover {
+            background: #faf9f5;
+        }
 
         /* ===== HEADER GRUP PER KK (mirip struktur excel) ===== */
         .kk-header-row th {
@@ -339,6 +435,7 @@ function hitung_umur($tanggal_lahir)
             white-space: normal;
             text-align: left;
         }
+
         .kk-header-row .kk-tag {
             display: inline-block;
             background: var(--hijau-tua);
@@ -348,6 +445,7 @@ function hitung_umur($tanggal_lahir)
             margin-right: 0.6rem;
             font-size: 0.78rem;
         }
+
         .kk-header-row .rt-tag {
             display: inline-block;
             background: var(--emas);
@@ -357,6 +455,7 @@ function hitung_umur($tanggal_lahir)
             margin-right: 0.6rem;
             font-size: 0.78rem;
         }
+
         .btn-edit-kk {
             float: right;
             text-decoration: none;
@@ -368,7 +467,10 @@ function hitung_umur($tanggal_lahir)
             font-weight: 600;
             transition: filter 0.2s;
         }
-        .btn-edit-kk:hover { filter: brightness(0.95); }
+
+        .btn-edit-kk:hover {
+            filter: brightness(0.95);
+        }
 
         .badge {
             padding: 0.2rem 0.6rem;
@@ -376,11 +478,28 @@ function hitung_umur($tanggal_lahir)
             font-size: 0.75rem;
             font-weight: 600;
         }
-        .badge.aktif { background: #dcfce7; color: #15803d; }
-        .badge.pindah { background: #fef9c3; color: #a16207; }
-        .badge.meninggal { background: #fee2e2; color: #b91c1c; }
 
-        .no-result { text-align: center; padding: 2rem; color: #94a3b8; display: none; }
+        .badge.aktif {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .badge.pindah {
+            background: #fef9c3;
+            color: #a16207;
+        }
+
+        .badge.meninggal {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .no-result {
+            text-align: center;
+            padding: 2rem;
+            color: #94a3b8;
+            display: none;
+        }
 
         .btn-tambah {
             background: var(--hijau-tua);
@@ -397,7 +516,10 @@ function hitung_umur($tanggal_lahir)
             gap: 0.4rem;
             transition: background 0.2s;
         }
-        .btn-tambah:hover { background: var(--hijau-gelap); }
+
+        .btn-tambah:hover {
+            background: var(--hijau-gelap);
+        }
 
         .btn {
             color: var(--hijau-tua);
@@ -406,10 +528,17 @@ function hitung_umur($tanggal_lahir)
             font-size: 0.82rem;
             margin-right: 0.4rem;
         }
-        .btn:hover { text-decoration: underline; }
-        a.btn[href^="delete_data"] { color: #b91c1c; }
+
+        .btn:hover {
+            text-decoration: underline;
+        }
+
+        a.btn[href^="delete_data"] {
+            color: #b91c1c;
+        }
     </style>
 </head>
+
 <body>
 
     <nav class="navbar">
@@ -430,10 +559,10 @@ function hitung_umur($tanggal_lahir)
 
         <?php if (isset($_GET['status'])): ?>
             <?php
-                $pesan_status = [
-                    'sukses'   => 'Data berhasil disimpan.',
-                    'hapus_kk' => 'KK beserta seluruh anggotanya berhasil dihapus.',
-                ];
+            $pesan_status = [
+                'sukses'   => 'Data berhasil disimpan.',
+                'hapus_kk' => 'KK beserta seluruh anggotanya berhasil dihapus.',
+            ];
             ?>
             <?php if (isset($pesan_status[$_GET['status']])): ?>
                 <div class="alert-status"><?= $pesan_status[$_GET['status']] ?></div>
@@ -476,6 +605,16 @@ function hitung_umur($tanggal_lahir)
             <a href="dashboard.php<?= $rt_filter !== "" ? "?rt=" . urlencode($rt_filter) : "" ?>" class="<?= $status_penduduk_filter === "" ? "active" : "" ?>">Semua Status</a>
             <a href="dashboard.php?status_penduduk=PERMANEN<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>" class="<?= $status_penduduk_filter === "PERMANEN" ? "active" : "" ?>">Penduduk Tetap</a>
             <a href="dashboard.php?status_penduduk=NON+PERMANEN<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>" class="<?= $status_penduduk_filter === "NON PERMANEN" ? "active" : "" ?>">Penduduk Tidak Tetap</a>
+            <a href="dashboard.php?tampilan=meninggal<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>"
+                class="<?= $tampilan_khusus === "meninggal" ? "active" : "" ?>"
+                >
+                Meninggal
+            </a>
+            <a href="dashboard.php?tampilan=tidak_lengkap<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>"
+                class="<?= $tampilan_khusus === "tidak_lengkap" ? "active" : "" ?>"
+                >
+                Data Tidak Lengkap
+            </a>
         </div>
 
         <!-- TABEL DATA -->
@@ -510,7 +649,9 @@ function hitung_umur($tanggal_lahir)
 
                     <?php if (empty($grouped)): ?>
                         <tbody>
-                            <tr><td colspan="12" style="text-align:center; padding:2rem; color:#94a3b8;">Tidak ada data.</td></tr>
+                            <tr>
+                                <td colspan="12" style="text-align:center; padding:2rem; color:#94a3b8;">Tidak ada data.</td>
+                            </tr>
                         </tbody>
                     <?php else: ?>
                         <?php foreach ($grouped as $kel): ?>
@@ -563,7 +704,7 @@ function hitung_umur($tanggal_lahir)
         const groups = document.querySelectorAll('#dataTable tbody.kk-group');
         const noResult = document.getElementById('noResult');
 
-        searchInput.addEventListener('keyup', function () {
+        searchInput.addEventListener('keyup', function() {
             const keyword = this.value.toLowerCase();
             let visibleCount = 0;
 
@@ -588,4 +729,5 @@ function hitung_umur($tanggal_lahir)
     </script>
 
 </body>
+
 </html>
