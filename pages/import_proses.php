@@ -1,8 +1,4 @@
 <?php
-// Jangan pernah tampilkan error PHP sebagai HTML di endpoint JSON.
-// Kalau ada warning/notice/deprecated yang lolos, tampung di buffer lalu
-// buang, supaya output ke client selalu JSON valid. Error tetap dicatat
-// ke log server untuk keperluan debugging.
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 error_reporting(E_ALL);
@@ -68,6 +64,19 @@ function tentukan_kelengkapan(array $d): string
     return 'LENGKAP';
 }
 
+function kosongKeNull(string $v): ?string
+{
+    return $v === '' ? null : $v;
+}
+function ringkas_data_untuk_pesan(array $data): string
+{
+    $bagian = [];
+    foreach ($data as $kolom => $nilai) {
+        $bagian[] = $kolom . '=' . ($nilai === null || $nilai === '' ? '(kosong)' : $nilai);
+    }
+    return implode(', ', $bagian);
+}
+
 $ringkasan = [
     'total_kk'           => count($input['keluarga']),
     'keluarga_baru'      => 0,
@@ -109,26 +118,42 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
             $nik = trim((string) ($a['nik'] ?? ''));
             $nama = bersihkan((string) ($a['nama_lengkap'] ?? ''));
             $nikKosong = ($nik === '');
-            if (!$nikKosong && (strlen($nik) !== 16 || !ctype_digit($nik))) {
-                $ringkasan['gagal'][] = "KK $labelKK, anggota ke-$nomorAnggota: NIK tidak valid (harus 16 digit angka, atau dikosongkan jika belum ada).";
-                continue;
+            if (!$nikKosong) {
+                if (!ctype_digit($nik)) {
+                    $ringkasan['gagal'][] = "KK $labelKK, anggota ke-$nomorAnggota: NIK tidak valid (harus berupa angka saja, atau dikosongkan jika belum ada).";
+                    continue;
+                }
+                if (strlen($nik) > 18) {
+                    $ringkasan['gagal'][] = "KK $labelKK, anggota ke-$nomorAnggota: NIK terlalu panjang ('$nik', maksimal 18 digit sesuai kapasitas kolom di database).";
+                    continue;
+                }
             }
             if ($nama === '') {
                 $ringkasan['gagal'][] = "KK $labelKK, anggota ke-$nomorAnggota: Nama kosong.";
                 continue;
+            }
+            $tglLahirMentah = trim((string) ($a['tanggal_lahir'] ?? ''));
+            $tglLahir = null;
+            if ($tglLahirMentah !== '') {
+                if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $tglLahirMentah, $m) && checkdate((int) $m[2], (int) $m[3], (int) $m[1])) {
+                    $tglLahir = $tglLahirMentah;
+                } else {
+                    $ringkasan['gagal'][] = "KK $labelKK, anggota ke-$nomorAnggota: Tanggal lahir tidak valid ('$tglLahirMentah', harus format YYYY-MM-DD dan tanggal yang benar-benar ada).";
+                    continue;
+                }
             }
 
             $dataBaru = [
                 'nik'                 => $nikKosong ? null : $nik,
                 'nama_lengkap'        => $nama,
                 'tempat_lahir'        => bersihkan((string) ($a['tempat_lahir'] ?? '')),
-                'tanggal_lahir'       => trim((string) ($a['tanggal_lahir'] ?? '')),
-                'jenis_kelamin'       => bersihkan((string) ($a['jenis_kelamin'] ?? '')),
-                'agama'               => bersihkan((string) ($a['agama'] ?? '')),
+                'tanggal_lahir'       => $tglLahir,
+                'jenis_kelamin'       => kosongKeNull(bersihkan((string) ($a['jenis_kelamin'] ?? ''))),
+                'agama'               => kosongKeNull(bersihkan((string) ($a['agama'] ?? ''))),
                 'pekerjaan'           => bersihkan((string) ($a['pekerjaan'] ?? '')),
-                'pendidikan_terakhir' => bersihkan((string) ($a['pendidikan_terakhir'] ?? '')),
-                'kewarganegaraan'     => bersihkan((string) ($a['kewarganegaraan'] ?? 'WNI')),
-                'status_penduduk'     => bersihkan((string) ($a['status_penduduk'] ?? 'PERMANEN')),
+                'pendidikan_terakhir' => kosongKeNull(bersihkan((string) ($a['pendidikan_terakhir'] ?? ''))),
+                'kewarganegaraan'     => kosongKeNull(bersihkan((string) ($a['kewarganegaraan'] ?? 'WNI'))),
+                'status_penduduk'     => kosongKeNull(bersihkan((string) ($a['status_penduduk'] ?? 'PERMANEN'))),
                 'hubungan_keluarga'   => bersihkan((string) ($a['hubungan_keluarga'] ?? '')),
             ];
             $dataBaru['status_lengkap'] = tentukan_kelengkapan($dataBaru);
@@ -156,7 +181,10 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
                     if (mysqli_errno($conn) === 1062) {
                         $ringkasan['gagal'][] = "NIK $nik: sudah terdaftar (bentrok saat proses).";
                     } else {
-                        throw new Exception("Gagal menyimpan anggota NIK $nik.");
+                        throw new Exception(
+                            "Gagal menyimpan anggota NIK $nik. Error database: " . mysqli_error($conn)
+                            . " | Data yang dikirim: " . ringkas_data_untuk_pesan($dataBaru)
+                        );
                     }
                 } else {
                     $ringkasan['anggota_baru']++;
@@ -193,7 +221,10 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
                     $dataBaru['status_lengkap']
                 );
                 if (!mysqli_stmt_execute($stmt)) {
-                    throw new Exception("Gagal memperbarui anggota NIK $nik.");
+                    throw new Exception(
+                        "Gagal memperbarui anggota NIK $nik. Error database: " . mysqli_error($conn)
+                        . " | Data yang dikirim: " . ringkas_data_untuk_pesan($dataBaru)
+                    );
                 }
                 $ringkasan['anggota_diperbarui']++;
                 mysqli_stmt_close($stmt);

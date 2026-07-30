@@ -279,12 +279,6 @@ if (!isset($conn)) {
             }
             return dp[m][n];
         }
-
-        // Cari kandidat dalam `daftarKandidat` yang jaraknya paling dekat dengan `teks`.
-        // Ambang batas dibuat proporsional terhadap panjang teks (bukan angka tetap),
-        // supaya kata pendek (mis. "L", "SD") tidak terlalu longgar dikoreksi,
-        // sementara kata panjang (mis. "DIPLOMA/SEDERAJAT") tetap bisa menoleransi
-        // beberapa huruf yang typo.
         function cariTerdekat(teks, daftarKandidat, ambangRasio = 0.3) {
             let terbaik = null;
             let jarakTerbaik = Infinity;
@@ -298,10 +292,6 @@ if (!isset($conn)) {
             }
             return terbaik;
         }
-
-        // Opsi baku "pendidikan_terakhir" di form. Diploma I/II/III digabung jadi satu kategori
-        // karena data sumber (Excel Dukcapil) sering hanya menulis "DIPLOMA/SEDERAJAT" tanpa
-        // menyebutkan jenjang I/II/III secara spesifik, sehingga tidak bisa dibedakan otomatis.
         const MAP_PENDIDIKAN = {
             'TIDAK SEKOLAH': 'TIDAK SEKOLAH',
             'BELUM SEKOLAH': 'TIDAK SEKOLAH',
@@ -322,16 +312,12 @@ if (!isset($conn)) {
             'SMP/SEDERAJAT': 'SLTP/SEDERAJAT',
             'SLTP': 'SLTP/SEDERAJAT',
             'SMP': 'SLTP/SEDERAJAT',
-
             'SLTA/SEDERAJAT': 'SLTA/SEDERAJAT',
             'SMA/SEDERAJAT': 'SLTA/SEDERAJAT',
             'SLTA': 'SLTA/SEDERAJAT',
             'SMA': 'SLTA/SEDERAJAT',
             'SMK/SEDERAJAT': 'SLTA/SEDERAJAT',
             'SMK': 'SLTA/SEDERAJAT',
-
-            // Semua varian Diploma I/II/III (termasu teks generik "DIPLOMA/SEDERAJAT" tanpa angka)
-            // digabung jadi satu opsi "DIPLOMA I/II/III"
             'DIPLOMA I/II/III': 'DIPLOMA I/II/III',
             'DIPLOMA/SEDERAJAT': 'DIPLOMA I/II/III',
             'DIPLOMA': 'DIPLOMA I/II/III',
@@ -347,8 +333,7 @@ if (!isset($conn)) {
             'D1': 'DIPLOMA I/II/III',
             'D2': 'DIPLOMA I/II/III',
             'D3': 'DIPLOMA I/II/III',
-
-            // Diploma IV digabung dengan Strata I (S1), sesuai kesetaraan jenjang pendidikan resmi
+            'AKADEMI/D3': 'DIPLOMA I/II/III',
             'DIPLOMA IV/STRATA I': 'DIPLOMA IV/STRATA I',
             'DIPLOMA IV/SEDERAJAT': 'DIPLOMA IV/STRATA I',
             'D-IV/SEDERAJAT': 'DIPLOMA IV/STRATA I',
@@ -384,7 +369,6 @@ if (!isset($conn)) {
             return key; // tidak ada yang cukup mirip -> biarkan apa adanya, perlu dicek manual
         }
 
-        // Opsi baku "jenis_kelamin" di form: LAKI-LAKI, PEREMPUAN
         const JENIS_KELAMIN_FUZZY = ['LAKI-LAKI', 'LAKI LAKI', 'PEREMPUAN', 'WANITA', 'PRIA'];
 
         function normalisasiJenisKelamin(v) {
@@ -643,6 +627,21 @@ if (!isset($conn)) {
 
             return hasil;
         }
+        const NILAI_VALID_ENUM = {
+            jenis_kelamin: ['LAKI-LAKI', 'PEREMPUAN'],
+            agama: ['ISLAM', 'KRISTEN', 'KATOLIK', 'HINDU', 'BUDDHA', 'KONGHUCU'],
+            pendidikan_terakhir: [
+                'TIDAK SEKOLAH', 'SD/SEDERAJAT', 'SLTP/SEDERAJAT', 'SLTA/SEDERAJAT',
+                'DIPLOMA I/II/III', 'DIPLOMA IV/STRATA I', 'STRATA II', 'STRATA III', 'PAUD/TK'
+            ],
+            kewarganegaraan: ['WNI', 'WNA'],
+            status_penduduk: ['PERMANEN', 'NON PERMANEN', 'MENINGGAL'],
+        };
+        function nilaiEnumValid(kolom, nilai) {
+            if (!NILAI_VALID_ENUM[kolom]) return true; 
+            if (!nilai) return true;
+            return NILAI_VALID_ENUM[kolom].includes(nilai);
+        }
 
         function tampilkanPreview(daftarKeluarga) {
             if (daftarKeluarga.length === 0) {
@@ -654,13 +653,50 @@ if (!isset($conn)) {
             }
 
             let totalAnggota = 0;
+            let adaNilaiMencurigakan = false;
             let html = '<table class="preview-table"><thead><tr><th>No. KK</th><th>RT</th><th>Alamat</th><th>Jumlah Anggota</th></tr></thead><tbody>';
             daftarKeluarga.forEach(k => {
                 totalAnggota += k.anggota.length;
                 html += `<tr><td>${k.nomor_kk}</td><td>${k.rt || '-'}</td><td>${k.alamat_domisili || '-'}</td><td>${k.anggota.length}</td></tr>`;
             });
             html += '</tbody></table>';
-            previewArea.innerHTML = html;
+            let detailHtml = '<table class="preview-table anggota-table"><thead><tr>' +
+                '<th>No. KK</th><th>NIK</th><th>Nama</th><th>Tempat Lahir</th><th>Tgl Lahir</th>' +
+                '<th>JK</th><th>Hub. Keluarga</th><th>Agama</th><th>Pendidikan</th><th>Pekerjaan</th>' +
+                '<th>Kewarganegaraan</th><th>Status</th></tr></thead><tbody>';
+            function selEnum(kolom, nilai) {
+                const valid = nilaiEnumValid(kolom, nilai);
+                if (!valid) adaNilaiMencurigakan = true;
+                const style = valid ? '' : ' style="color:#b91c1c; font-weight:600; background:#fef2f2;"';
+                return `<td${style}>${nilai || '-'}</td>`;
+            }
+
+            daftarKeluarga.forEach(k => {
+                k.anggota.forEach(a => {
+                    detailHtml += '<tr>';
+                    detailHtml += `<td>${k.nomor_kk}</td>`;
+                    detailHtml += `<td>${a.nik || '<em>(kosong)</em>'}</td>`;
+                    detailHtml += `<td>${a.nama_lengkap}</td>`;
+                    detailHtml += `<td>${a.tempat_lahir || ' '}</td>`;
+                    detailHtml += `<td>${a.tanggal_lahir || ' '}</td>`;
+                    detailHtml += selEnum('jenis_kelamin', a.jenis_kelamin);
+                    detailHtml += `<td>${a.hubungan_keluarga || ' '}</td>`;
+                    detailHtml += selEnum('agama', a.agama);
+                    detailHtml += selEnum('pendidikan_terakhir', a.pendidikan_terakhir);
+                    detailHtml += `<td>${a.pekerjaan || ' '}</td>`;
+                    detailHtml += selEnum('kewarganegaraan', a.kewarganegaraan);
+                    detailHtml += selEnum('status_penduduk', a.status_penduduk);
+                    detailHtml += '</tr>';
+                });
+            });
+            detailHtml += '</tbody></table>';
+
+            const peringatan = adaNilaiMencurigakan
+                ? '<p style="color:#b91c1c; font-size:0.85rem; margin-top:0.6rem;">⚠️ Ada nilai (ditandai merah) yang tidak cocok dengan pilihan resmi di database. Ini kemungkinan besar akan menyebabkan error "Data truncated" saat proses import. Cek dan perbaiki dulu di file Excel sumbernya.</p>'
+                : '';
+
+            previewArea.innerHTML = html +
+                `<details style="margin-top:1rem;"><summary style="cursor:pointer; color:var(--hijau-tua); font-weight:600; font-size:0.88rem;">Lihat detail per anggota (${totalAnggota} orang) — cek hasil parsing sebelum import</summary>${peringatan}${detailHtml}</details>`;
 
             statusMsg.textContent = `Terbaca ${daftarKeluarga.length} KK, total ${totalAnggota} anggota.`;
             statusMsg.className = 'status-msg';
@@ -683,10 +719,8 @@ if (!isset($conn)) {
                         keluarga: dataKeluargaSiapKirim
                     }),
                 });
-
                 const contentType = res.headers.get('content-type') || '';
                 const mentahText = await res.text();
-
                 if (!contentType.includes('application/json')) {
                     let petunjuk = 'Server tidak mengembalikan JSON (kemungkinan sesi login habis, file import_proses.php belum ada di folder yang sama, atau ada error PHP).';
                     if (mentahText.trim().toLowerCase().startsWith('<!doctype') || mentahText.trim().toLowerCase().startsWith('<html')) {
