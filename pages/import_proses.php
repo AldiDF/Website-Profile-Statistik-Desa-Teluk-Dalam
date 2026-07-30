@@ -54,6 +54,20 @@ function bersihkan(string $v): string
     return strtoupper($v);
 }
 
+function tentukan_kelengkapan(array $d): string
+{
+    $wajib = [
+        'nik', 'nama_lengkap', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
+        'agama', 'pekerjaan', 'pendidikan_terakhir', 'kewarganegaraan', 'hubungan_keluarga',
+    ];
+    foreach ($wajib as $f) {
+        if (empty($d[$f])) {
+            return 'TIDAK LENGKAP';
+        }
+    }
+    return 'LENGKAP';
+}
+
 $ringkasan = [
     'total_kk'           => count($input['keluarga']),
     'keluarga_baru'      => 0,
@@ -117,6 +131,7 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
                 'status_penduduk'     => bersihkan((string) ($a['status_penduduk'] ?? 'PERMANEN')),
                 'hubungan_keluarga'   => bersihkan((string) ($a['hubungan_keluarga'] ?? '')),
             ];
+            $dataBaru['status_lengkap'] = tentukan_kelengkapan($dataBaru);
 
             $dataLama = ambil_data_penduduk_by_nik($conn, $nik);
 
@@ -134,7 +149,8 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
                     $dataBaru['kewarganegaraan'],
                     $dataBaru['status_penduduk'],
                     (string) $id_keluarga,
-                    $dataBaru['hubungan_keluarga']
+                    $dataBaru['hubungan_keluarga'],
+                    $dataBaru['status_lengkap'],
                 );
                 if (!mysqli_stmt_execute($stmt)) {
                     if (mysqli_errno($conn) === 1062) {
@@ -173,7 +189,8 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
                     $dataBaru['kewarganegaraan'],
                     $dataBaru['status_penduduk'],
                     $dataBaru['hubungan_keluarga'],
-                    (int) $dataLama['id_penduduk']
+                    (int) $dataLama['id_penduduk'],
+                    $dataBaru['status_lengkap']
                 );
                 if (!mysqli_stmt_execute($stmt)) {
                     throw new Exception("Gagal memperbarui anggota NIK $nik.");
