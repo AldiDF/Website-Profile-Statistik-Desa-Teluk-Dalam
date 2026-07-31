@@ -558,16 +558,27 @@ if (!isset($conn)) {
         function parseSemuaKK(rows, rtDariFile) {
             const statusHeaderList = []; // { rowIndex, status }
             for (let i = 0; i < rows.length; i++) {
-                const cellA = (rows[i][0] || '').toString().trim().toUpperCase();
-                if (cellA.startsWith('PERIODE')) {
-                    const cellRT = (rows[i][12] || '').toString();
-                    let status = 'PERMANEN';
-                    if (/NON PERMANEN/i.test(cellRT)) status = 'NON PERMANEN';
-                    else if (/PERMANEN/i.test(cellRT)) status = 'PERMANEN';
-                    statusHeaderList.push({
-                        rowIndex: i,
-                        status: status
-                    });
+                // Gabungkan semua sel di baris ini jadi 1 teks, supaya tidak bergantung
+                // pada posisi kolom pasti (kadang teks "BUKU INDUK PENDUDUK WNI (PERMANEN)"
+                // ada di kolom A, kadang gabungan sel lain karena merge cell di Excel).
+                const barisTeks = (rows[i] || []).map(c => (c || '').toString()).join(' ').toUpperCase();
+
+                if (barisTeks.includes('BUKU INDUK PENDUDUK WNI')) {
+                    let status = null;
+                    // Cek "NON PERMANEN" LEBIH DULU, karena kata "PERMANEN" juga
+                    // otomatis ikut ketemu di dalam teks "NON PERMANEN" kalau dicek terbalik.
+                    if (/NON\s*PERMANEN/i.test(barisTeks)) {
+                        status = 'NON PERMANEN';
+                    } else if (/\bPERMANEN\b/i.test(barisTeks)) {
+                        status = 'PERMANEN';
+                    }
+
+                    if (status) {
+                        statusHeaderList.push({
+                            rowIndex: i,
+                            status: status
+                        });
+                    }
                 }
             }
 
