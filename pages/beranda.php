@@ -1,3 +1,274 @@
+<?php
+session_start();
+require '../databases/connection.php';
+
+if (!isset($conn)) {
+    die("Koneksi database tidak tersedia.");
+}
+$total_penduduk    = 0;
+$total_kk          = 0;
+$total_laki         = 0;
+$total_perempuan    = 0;
+$total_tetap        = 0;
+$total_tidak_tetap  = 0;
+$total_rt           = 0;
+$nama_kepala_desa   = "-"; 
+$luas_wilayah       = "443,40 km²"; 
+
+$q = mysqli_query($conn, "SELECT COUNT(*) AS jumlah FROM penduduk");
+if ($q) $total_penduduk = (int) mysqli_fetch_assoc($q)['jumlah'];
+
+$q = mysqli_query($conn, "SELECT COUNT(*) AS jumlah FROM keluarga");
+if ($q) $total_kk = (int) mysqli_fetch_assoc($q)['jumlah'];
+$gender_labels = [];
+$gender_data   = [];
+$q = mysqli_query($conn, "
+    SELECT jenis_kelamin, COUNT(*) AS jumlah
+    FROM penduduk
+    WHERE jenis_kelamin IS NOT NULL
+    GROUP BY jenis_kelamin
+");
+if ($q) {
+    while ($row = mysqli_fetch_assoc($q)) {
+        $label = ($row['jenis_kelamin'] === 'LAKI-LAKI') ? 'Laki-laki' : 'Perempuan';
+        $gender_labels[] = $label;
+        $gender_data[]   = (int) $row['jumlah'];
+        if ($row['jenis_kelamin'] === 'LAKI-LAKI') {
+            $total_laki = (int) $row['jumlah'];
+        } else {
+            $total_perempuan = (int) $row['jumlah'];
+        }
+    }
+}
+
+// ==========================
+// DIAGRAM 2: Status Tempat Tinggal (Tetap / Tidak Tetap)
+// Catatan: status "MENINGGAL" sengaja TIDAK dimasukkan ke diagram ini
+// karena bukan bagian dari klasifikasi tetap/tidak tetap.
+// ==========================
+$status_labels = [];
+$status_data   = [];
+$total_meninggal = 0;
+$q = mysqli_query($conn, "
+    SELECT status_penduduk, COUNT(*) AS jumlah
+    FROM penduduk
+    WHERE status_penduduk IS NOT NULL
+    GROUP BY status_penduduk
+");
+if ($q) {
+    while ($row = mysqli_fetch_assoc($q)) {
+        if ($row['status_penduduk'] === 'PERMANEN') {
+            $total_tetap = (int) $row['jumlah'];
+            $status_labels[] = 'Penduduk Tetap';
+            $status_data[]   = $total_tetap;
+        } elseif ($row['status_penduduk'] === 'NON PERMANEN') {
+            $total_tidak_tetap = (int) $row['jumlah'];
+            $status_labels[] = 'Penduduk Tidak Tetap';
+            $status_data[]   = $total_tidak_tetap;
+        } else {
+            // MENINGGAL - dicatat totalnya saja, tidak masuk diagram tetap/tidak tetap
+            $total_meninggal = (int) $row['jumlah'];
+        }
+    }
+}
+
+// ==========================
+// DIAGRAM 3: Pekerjaan (Top 7 terbanyak, sisanya digabung "Lainnya")
+// ==========================
+$pekerjaan_labels = [];
+$pekerjaan_data   = [];
+$q = mysqli_query($conn, "
+    SELECT
+        CASE
+            WHEN pekerjaan IS NULL OR TRIM(pekerjaan) = '' THEN 'Tidak/Belum Bekerja'
+            ELSE pekerjaan
+        END AS pekerjaan_bersih,
+        COUNT(*) AS jumlah
+    FROM penduduk
+    GROUP BY pekerjaan_bersih
+    ORDER BY jumlah DESC
+");
+$pekerjaan_raw = [];
+if ($q) {
+    while ($row = mysqli_fetch_assoc($q)) {
+        $pekerjaan_raw[] = $row;
+    }
+}
+$batas_top_pekerjaan = 7;
+$lainnya_total = 0;
+foreach ($pekerjaan_raw as $i => $row) {
+    if ($i < $batas_top_pekerjaan) {
+        $pekerjaan_labels[] = $row['pekerjaan_bersih'];
+        $pekerjaan_data[]   = (int) $row['jumlah'];
+    } else {
+        $lainnya_total += (int) $row['jumlah'];
+    }
+}
+if ($lainnya_total > 0) {
+    $pekerjaan_labels[] = 'Lainnya';
+    $pekerjaan_data[]   = $lainnya_total;
+}
+
+// ==========================
+// DIAGRAM 4: Jumlah KK per RT
+// ==========================
+$rt_labels = [];
+$rt_data   = [];
+$q = mysqli_query($conn, "
+    SELECT CAST(rt AS UNSIGNED) AS rt_num, COUNT(*) AS jumlah_kk
+    FROM keluarga
+    WHERE rt IS NOT NULL AND rt <> ''
+    GROUP BY rt_num
+    ORDER BY rt_num ASC
+");
+if ($q) {
+    while ($row = mysqli_fetch_assoc($q)) {
+        $rt_labels[] = 'RT ' . $row['rt_num'];
+        $rt_data[]   = (int) $row['jumlah_kk'];
+    }
+}
+$total_rt = count($rt_labels);
+
+// ==========================
+// DIAGRAM 5: Piramida Penduduk (kelompok usia x jenis kelamin)
+// Diagram demografi klasik: laki-laki digambar ke kiri (nilai negatif),
+// perempuan ke kanan (nilai positif), supaya bentuk piramida usianya kelihatan.
+// ==========================
+$kelompok_usia_urut = [
+    '0-4', '5-9', '10-14', '15-19', '20-24', '25-29', '30-34', '35-39',
+    '40-44', '45-49', '50-54', '55-59', '60-64', '65-69', '70-74', '75+',
+];
+$piramida_laki = array_fill_keys($kelompok_usia_urut, 0);
+$piramida_perempuan = array_fill_keys($kelompok_usia_urut, 0);
+
+$q = mysqli_query($conn, "
+    SELECT
+        CASE
+            WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 0 AND 4 THEN '0-4'
+            WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 5 AND 9 THEN '5-9'
+            WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 10 AND 14 THEN '10-14'
+            WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 15 AND 19 THEN '15-19'
+            WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 20 AND 24 THEN '20-24'
+            WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 25 AND 29 THEN '25-29'
+            WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 30 AND 34 THEN '30-34'
+            WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 35 AND 39 THEN '35-39'
+            WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 40 AND 44 THEN '40-44'
+            WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 45 AND 49 THEN '45-49'
+            WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 50 AND 54 THEN '50-54'
+            WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 55 AND 59 THEN '55-59'
+            WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 60 AND 64 THEN '60-64'
+            WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 65 AND 69 THEN '65-69'
+            WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 70 AND 74 THEN '70-74'
+            ELSE '75+'
+        END AS kelompok_usia,
+        jenis_kelamin,
+        COUNT(*) AS jumlah
+    FROM penduduk
+    WHERE tanggal_lahir IS NOT NULL AND jenis_kelamin IS NOT NULL
+    GROUP BY kelompok_usia, jenis_kelamin
+");
+if ($q) {
+    while ($row = mysqli_fetch_assoc($q)) {
+        $kelompok = $row['kelompok_usia'];
+        if (!isset($piramida_laki[$kelompok])) continue; // jaga-jaga kalau ada nilai tak terduga
+        if ($row['jenis_kelamin'] === 'LAKI-LAKI') {
+            $piramida_laki[$kelompok] = (int) $row['jumlah'];
+        } else {
+            $piramida_perempuan[$kelompok] = (int) $row['jumlah'];
+        }
+    }
+}
+// Nilai laki-laki dibuat negatif supaya batangnya mengarah ke kiri (efek piramida)
+$piramida_laki_data = array_map(fn($v) => -$v, array_values($piramida_laki));
+$piramida_perempuan_data = array_values($piramida_perempuan);
+
+// ==========================
+// DIAGRAM 6: Sebaran Agama
+// ==========================
+$agama_labels = [];
+$agama_data   = [];
+$q = mysqli_query($conn, "
+    SELECT agama, COUNT(*) AS jumlah
+    FROM penduduk
+    WHERE agama IS NOT NULL
+    GROUP BY agama
+    ORDER BY jumlah DESC
+");
+if ($q) {
+    while ($row = mysqli_fetch_assoc($q)) {
+        $agama_labels[] = ucfirst(strtolower($row['agama']));
+        $agama_data[]   = (int) $row['jumlah'];
+    }
+}
+
+// ==========================
+// DIAGRAM 7: Tingkat Pendidikan Terakhir
+// Diurutkan dari jenjang terendah ke tertinggi (bukan berdasarkan jumlah),
+// supaya tren pendidikannya kelihatan jelas dari kiri ke kanan.
+// ==========================
+$urutan_pendidikan = [
+    'TIDAK SEKOLAH', 'PAUD/TK', 'SD/SEDERAJAT', 'SLTP/SEDERAJAT', 'SLTA/SEDERAJAT',
+    'DIPLOMA I/II/III', 'DIPLOMA IV/STRATA I', 'STRATA II', 'STRATA III',
+];
+$pendidikan_jumlah = array_fill_keys($urutan_pendidikan, 0);
+$q = mysqli_query($conn, "
+    SELECT pendidikan_terakhir, COUNT(*) AS jumlah
+    FROM penduduk
+    WHERE pendidikan_terakhir IS NOT NULL
+    GROUP BY pendidikan_terakhir
+");
+if ($q) {
+    while ($row = mysqli_fetch_assoc($q)) {
+        if (isset($pendidikan_jumlah[$row['pendidikan_terakhir']])) {
+            $pendidikan_jumlah[$row['pendidikan_terakhir']] = (int) $row['jumlah'];
+        }
+    }
+}
+// Buang jenjang yang datanya nol supaya sumbu-x tidak penuh label kosong
+$pendidikan_labels = [];
+$pendidikan_data   = [];
+foreach ($pendidikan_jumlah as $label => $jumlah) {
+    if ($jumlah > 0) {
+        $pendidikan_labels[] = $label;
+        $pendidikan_data[]   = $jumlah;
+    }
+}
+
+// ==========================
+// DIAGRAM 8: Rasio Usia Produktif vs Tidak Produktif (Dependency Ratio)
+// Usia produktif: 15-64 tahun. Usia tidak produktif: <15 tahun atau >64 tahun.
+// Rasio ketergantungan = (tidak produktif / produktif) x 100
+// Semakin kecil persentasenya, semakin ringan "beban" penduduk usia produktif
+// menanggung penduduk usia non-produktif.
+// ==========================
+$usia_produktif = 0;
+$usia_muda      = 0;
+$usia_tua       = 0;
+$q = mysqli_query($conn, "
+    SELECT
+        SUM(CASE WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) BETWEEN 15 AND 64 THEN 1 ELSE 0 END) AS produktif,
+        SUM(CASE WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) < 15 THEN 1 ELSE 0 END) AS usia_muda,
+        SUM(CASE WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) > 64 THEN 1 ELSE 0 END) AS usia_tua
+    FROM penduduk
+    WHERE tanggal_lahir IS NOT NULL
+");
+if ($q) {
+    $row = mysqli_fetch_assoc($q);
+    $usia_produktif = (int) $row['produktif'];
+    $usia_muda      = (int) $row['usia_muda'];
+    $usia_tua       = (int) $row['usia_tua'];
+}
+$rasio_ketergantungan = $usia_produktif > 0
+    ? round((($usia_muda + $usia_tua) / $usia_produktif) * 100, 1)
+    : 0;
+
+// Helper format angka gaya Indonesia: 3250 -> "3.250"
+function fmt(int $n): string {
+    return number_format($n, 0, ',', '.');
+}
+?>
+
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -9,6 +280,65 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styless/beranda.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    /* ===== Layout diagram statistik (tambahan, tidak mengubah beranda.css) ===== */
+    .chart-group-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #0c3c2e;
+      margin: 2.2rem 0 1rem;
+      padding-left: 0.6rem;
+      border-left: 4px solid #f4b400;
+    }
+    .chart-group-title:first-of-type {
+      margin-top: 1.5rem;
+    }
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+    .chart-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+      display: flex;
+      flex-direction: column;
+    }
+    .chart-card.full {
+      grid-column: 1 / -1;
+    }
+    .chart-card h4 {
+      text-align: center;
+      font-size: 0.95rem;
+      color: #0c3c2e;
+      margin-bottom: 0.3rem;
+    }
+    .chart-card .sub {
+      text-align: center;
+      font-size: 0.78rem;
+      color: #898781;
+      margin-bottom: 0.8rem;
+    }
+    .chart-card .canvas-wrap {
+      position: relative;
+      width: 100%;
+      height: 260px;
+    }
+    .chart-card.full .canvas-wrap {
+      height: 320px;
+    }
+    .chart-card.full .canvas-wrap.tall {
+      height: 420px;
+    }
+    .chart-card .highlight {
+      text-align: center;
+      font-size: 0.85rem;
+      margin-top: 0.8rem;
+      color: #0f4c3a;
+    }
+  </style>
 </head>
 <body>
 
@@ -60,61 +390,122 @@
   <section id="statistik">
     <div class="section-title">
       <h3>Statistik Desa</h3>
-      <p>Data singkat kondisi Desa Teluk Dalam.</p>
+      <p>Data singkat kondisi Desa Teluk Dalam (otomatis dari database).</p>
     </div>
 
     <div class="cards">
       <div class="card">
         <h4>Jumlah Penduduk</h4>
-        <p><strong>3.250 Jiwa</strong></p>
+        <p><strong><?= fmt($total_penduduk) ?> Jiwa</strong></p>
       </div>
       <div class="card">
         <h4>Luas Wilayah</h4>
-        <p><strong>443,40 km²</strong></p>
+        <p><strong><?= htmlspecialchars($luas_wilayah) ?></strong></p>
       </div>
       <div class="card">
         <h4>Jumlah RT</h4>
-        <p><strong>4 RT</strong></p>
-      </div>
-      <div class="card">
-        <h4>Kepala Desa</h4>
-        <p><strong>Supian</strong></p>
+        <p><strong><?= $total_rt ?> RT</strong></p>
       </div>
       <div class="card">
         <h4>Kepala Keluarga</h4>
-        <p><strong>813 KK</strong></p>
+        <p><strong><?= fmt($total_kk) ?> KK</strong></p>
       </div>
       <div class="card">
         <h4>Penduduk Tetap</h4>
-        <p><strong>2.925 Jiwa</strong></p>
+        <p><strong><?= fmt($total_tetap) ?> Jiwa</strong></p>
       </div>
       <div class="card">
         <h4>Penduduk Tidak Tetap</h4>
-        <p><strong>325 Jiwa</strong></p>
+        <p><strong><?= fmt($total_tidak_tetap) ?> Jiwa</strong></p>
+      </div>
+      <div class="card">
+        <h4>Penduduk Tidak Tetap</h4>
+        <p><strong><?= fmt($total_tidak_tetap) ?> Jiwa</strong></p>
+      </div>
+      <div class="card">
+        <h4>Penduduk Tidak Tetap</h4>
+        <p><strong><?= fmt($total_tidak_tetap) ?> Jiwa</strong></p>
+      </div>
+      <div class="card">
+        <h4>Penduduk Tidak Tetap</h4>
+        <p><strong><?= fmt($total_tidak_tetap) ?> Jiwa</strong></p>
       </div>
     </div>
 
-    <div style="display:flex; flex-wrap:wrap; gap:2rem; justify-content:center; margin:2rem auto 0;">
-      <div style="flex:1; min-width:280px; max-width:420px;">
-        <h4 style="text-align:center; margin-bottom:1rem;">Penduduk Berdasarkan Jenis Kelamin</h4>
-        <div style="display:flex; justify-content:center; gap:16px; margin-bottom:12px; font-size:13px;">
-          <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#2a78d6;"></span>Laki-laki 1.625 (50%)</span>
-          <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#e87ba4;"></span>Perempuan 1.625 (50%)</span>
-        </div>
-        <div style="position:relative; width:100%; height:260px;">
-          <canvas id="genderChart" role="img" aria-label="Diagram lingkaran perbandingan penduduk laki-laki dan perempuan Desa Teluk Dalam, masing-masing 1625 jiwa atau 50 persen dari total 3250 jiwa">Laki-laki 1625 (50%), Perempuan 1625 (50%)</canvas>
+    <!-- Kelompok 1: Gambaran umum penduduk -->
+    <div class="chart-group-title">Gambaran Umum Penduduk</div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h4>Penduduk Berdasarkan Jenis Kelamin</h4>
+        <div class="canvas-wrap">
+          <canvas id="genderChart" role="img" aria-label="Diagram lingkaran perbandingan penduduk laki-laki dan perempuan Desa Teluk Dalam"></canvas>
         </div>
       </div>
 
-      <div style="flex:1; min-width:280px; max-width:420px;">
-        <h4 style="text-align:center; margin-bottom:1rem;">Penduduk Berdasarkan Status Tempat Tinggal</h4>
-        <div style="display:flex; justify-content:center; gap:16px; margin-bottom:12px; font-size:13px;">
-          <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#2a78d6;"></span>Penduduk tetap 2.925 (90%)</span>
-          <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#eda100;"></span>Penduduk tidak tetap 325 (10%)</span>
+      <div class="chart-card">
+        <h4>Penduduk Berdasarkan Status Tempat Tinggal</h4>
+        <div class="canvas-wrap">
+          <canvas id="statusChart" role="img" aria-label="Diagram batang perbandingan penduduk tetap dan tidak tetap"></canvas>
         </div>
-        <div style="position:relative; width:100%; height:260px;">
-          <canvas id="statusChart" role="img" aria-label="Diagram batang perbandingan penduduk tetap 2925 jiwa dan tidak tetap 325 jiwa">Penduduk tetap 2925, tidak tetap 325</canvas>
+      </div>
+    </div>
+
+    <!-- Kelompok 2: Struktur usia (diagram utama, dapat baris penuh sendiri) -->
+    <div class="chart-group-title">Struktur Usia Penduduk</div>
+    <div class="chart-grid">
+      <div class="chart-card full">
+        <h4>Piramida Penduduk Menurut Usia &amp; Jenis Kelamin</h4>
+        <div class="canvas-wrap tall">
+          <canvas id="piramidaChart" role="img" aria-label="Piramida penduduk berdasarkan kelompok usia dan jenis kelamin"></canvas>
         </div>
+      </div>
+    </div>
+
+    <!-- Kelompok 3: Sosial & ekonomi -->
+    <div class="chart-group-title">Kondisi Sosial &amp; Ekonomi</div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h4>Penduduk Berdasarkan Agama</h4>
+        <div class="canvas-wrap">
+          <canvas id="agamaChart" role="img" aria-label="Diagram lingkaran sebaran agama penduduk"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h4>Tingkat Pendidikan Terakhir</h4>
+        <div class="canvas-wrap">
+          <canvas id="pendidikanChart" role="img" aria-label="Diagram batang tingkat pendidikan terakhir penduduk, diurutkan dari jenjang terendah ke tertinggi"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card full">
+        <h4>Penduduk Berdasarkan Pekerjaan</h4>
+        <div class="canvas-wrap">
+          <canvas id="pekerjaanChart" role="img" aria-label="Diagram batang jumlah penduduk per jenis pekerjaan"></canvas>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="chart-group-title">Wilayah &amp; Analisis Kependudukan</div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h4>Jumlah KK per RT</h4>
+        <div class="canvas-wrap">
+          <canvas id="rtChart" role="img" aria-label="Diagram batang jumlah kepala keluarga per RT"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h4>Rasio Ketergantungan Usia</h4>
+        <p class="sub">Perbandingan usia produktif (15–64 th) vs tidak produktif</p>
+        <div class="canvas-wrap">
+          <canvas id="dependencyChart" role="img" aria-label="Diagram lingkaran rasio penduduk usia produktif dan tidak produktif"></canvas>
+        </div>
+        <p class="highlight">
+          <strong>Rasio ketergantungan: <?= $rasio_ketergantungan ?>%</strong><br>
+          Tiap 100 penduduk usia produktif menanggung ±<?= round($rasio_ketergantungan) ?> penduduk usia non-produktif.
+        </p>
       </div>
     </div>
   </section>
@@ -126,12 +517,33 @@
   </footer>
 
   <script>
+    const genderLabels    = <?= json_encode($gender_labels, JSON_UNESCAPED_UNICODE) ?>;
+    const genderData      = <?= json_encode($gender_data) ?>;
+    const statusLabels    = <?= json_encode($status_labels, JSON_UNESCAPED_UNICODE) ?>;
+    const statusData      = <?= json_encode($status_data) ?>;
+    const pekerjaanLabels = <?= json_encode($pekerjaan_labels, JSON_UNESCAPED_UNICODE) ?>;
+    const pekerjaanData   = <?= json_encode($pekerjaan_data) ?>;
+    const rtLabels        = <?= json_encode($rt_labels, JSON_UNESCAPED_UNICODE) ?>;
+    const rtData          = <?= json_encode($rt_data) ?>;
+    const piramidaKelompokUsia   = <?= json_encode($kelompok_usia_urut, JSON_UNESCAPED_UNICODE) ?>;
+    const piramidaLakiData       = <?= json_encode($piramida_laki_data) ?>;
+    const piramidaPerempuanData  = <?= json_encode($piramida_perempuan_data) ?>;
+
+    const agamaLabels     = <?= json_encode($agama_labels, JSON_UNESCAPED_UNICODE) ?>;
+    const agamaData       = <?= json_encode($agama_data) ?>;
+
+    const pendidikanLabels = <?= json_encode($pendidikan_labels, JSON_UNESCAPED_UNICODE) ?>;
+    const pendidikanData   = <?= json_encode($pendidikan_data) ?>;
+
+    const dependencyLabels = ['Usia Produktif (15-64 th)', 'Usia Non-Produktif'];
+    const dependencyData   = [<?= $usia_produktif ?>, <?= $usia_muda + $usia_tua ?>];
+
     new Chart(document.getElementById('genderChart'), {
       type: 'doughnut',
       data: {
-        labels: ['Laki-laki', 'Perempuan'],
+        labels: genderLabels,
         datasets: [{
-          data: [1625, 1625],
+          data: genderData,
           backgroundColor: ['#2a78d6', '#e87ba4'],
           borderColor: '#ffffff',
           borderWidth: 2
@@ -140,16 +552,15 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } }
+        plugins: { legend: { position: 'bottom' } }
       }
     });
-
     new Chart(document.getElementById('statusChart'), {
       type: 'bar',
       data: {
-        labels: ['Penduduk tetap', 'Penduduk tidak tetap'],
+        labels: statusLabels,
         datasets: [{
-          data: [2925, 325],
+          data: statusData,
           backgroundColor: ['#2a78d6', '#eda100'],
           borderRadius: 4,
           maxBarThickness: 60
@@ -163,6 +574,152 @@
           y: { beginAtZero: true, ticks: { color: '#898781' }, grid: { color: '#e1e0d9' } },
           x: { ticks: { color: '#898781' }, grid: { display: false } }
         }
+      }
+    });
+
+    new Chart(document.getElementById('pekerjaanChart'), {
+      type: 'bar',
+      data: {
+        labels: pekerjaanLabels,
+        datasets: [{
+          data: pekerjaanData,
+          backgroundColor: '#0f4c3a',
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        indexAxis: 'y', 
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true, ticks: { color: '#898781' }, grid: { color: '#e1e0d9' } },
+          y: { ticks: { color: '#898781' }, grid: { display: false } }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('rtChart'), {
+      type: 'bar',
+      data: {
+        labels: rtLabels,
+        datasets: [{
+          data: rtData,
+          backgroundColor: '#f4b400',
+          borderRadius: 4,
+          maxBarThickness: 60
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { color: '#898781', stepSize: 1 }, grid: { color: '#e1e0d9' } },
+          x: { ticks: { color: '#898781' }, grid: { display: false } }
+        }
+      }
+    });
+    new Chart(document.getElementById('piramidaChart'), {
+      type: 'bar',
+      data: {
+        labels: piramidaKelompokUsia,
+        datasets: [
+          {
+            label: 'Laki-laki',
+            data: piramidaLakiData,
+            backgroundColor: '#2a78d6',
+            borderRadius: 3,
+          },
+          {
+            label: 'Perempuan',
+            data: piramidaPerempuanData,
+            backgroundColor: '#e87ba4',
+            borderRadius: 3,
+          },
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${Math.abs(ctx.raw)} jiwa`
+            }
+          }
+        },
+        scales: {
+          x: {
+            stacked: false,
+            ticks: {
+              color: '#898781',
+              callback: (val) => Math.abs(val)
+            },
+            grid: { color: '#e1e0d9' }
+          },
+          y: {
+            ticks: { color: '#898781' },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+    new Chart(document.getElementById('agamaChart'), {
+      type: 'doughnut',
+      data: {
+        labels: agamaLabels,
+        datasets: [{
+          data: agamaData,
+          backgroundColor: ['#0f4c3a', '#2a78d6', '#e87ba4', '#f4b400', '#8e44ad', '#e74c3c'],
+          borderColor: '#ffffff',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
+      }
+    });
+    new Chart(document.getElementById('pendidikanChart'), {
+      type: 'bar',
+      data: {
+        labels: pendidikanLabels,
+        datasets: [{
+          data: pendidikanData,
+          backgroundColor: '#0c3c2e',
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { color: '#898781' }, grid: { color: '#e1e0d9' } },
+          x: { ticks: { color: '#898781', font: { size: 10 }, maxRotation: 40, minRotation: 40 }, grid: { display: false } }
+        }
+      }
+    });
+    new Chart(document.getElementById('dependencyChart'), {
+      type: 'doughnut',
+      data: {
+        labels: dependencyLabels,
+        datasets: [{
+          data: dependencyData,
+          backgroundColor: ['#0f4c3a', '#eda100'],
+          borderColor: '#ffffff',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
       }
     });
   </script>
