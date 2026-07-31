@@ -40,12 +40,6 @@ if ($q) {
         }
     }
 }
-
-// ==========================
-// DIAGRAM 2: Status Tempat Tinggal (Tetap / Tidak Tetap)
-// Catatan: status "MENINGGAL" sengaja TIDAK dimasukkan ke diagram ini
-// karena bukan bagian dari klasifikasi tetap/tidak tetap.
-// ==========================
 $status_labels = [];
 $status_data   = [];
 $total_meninggal = 0;
@@ -71,10 +65,6 @@ if ($q) {
         }
     }
 }
-
-// ==========================
-// DIAGRAM 3: Pekerjaan (Top 7 terbanyak, sisanya digabung "Lainnya")
-// ==========================
 $pekerjaan_labels = [];
 $pekerjaan_data   = [];
 $q = mysqli_query($conn, "
@@ -108,10 +98,6 @@ if ($lainnya_total > 0) {
     $pekerjaan_labels[] = 'Lainnya';
     $pekerjaan_data[]   = $lainnya_total;
 }
-
-// ==========================
-// DIAGRAM 4: Jumlah KK per RT
-// ==========================
 $rt_labels = [];
 $rt_data   = [];
 $q = mysqli_query($conn, "
@@ -128,12 +114,6 @@ if ($q) {
     }
 }
 $total_rt = count($rt_labels);
-
-// ==========================
-// DIAGRAM 5: Piramida Penduduk (kelompok usia x jenis kelamin)
-// Diagram demografi klasik: laki-laki digambar ke kiri (nilai negatif),
-// perempuan ke kanan (nilai positif), supaya bentuk piramida usianya kelihatan.
-// ==========================
 $kelompok_usia_urut = [
     '0-4', '5-9', '10-14', '15-19', '20-24', '25-29', '30-34', '35-39',
     '40-44', '45-49', '50-54', '55-59', '60-64', '65-69', '70-74', '75+',
@@ -178,13 +158,8 @@ if ($q) {
         }
     }
 }
-// Nilai laki-laki dibuat negatif supaya batangnya mengarah ke kiri (efek piramida)
 $piramida_laki_data = array_map(fn($v) => -$v, array_values($piramida_laki));
 $piramida_perempuan_data = array_values($piramida_perempuan);
-
-// ==========================
-// DIAGRAM 6: Sebaran Agama
-// ==========================
 $agama_labels = [];
 $agama_data   = [];
 $q = mysqli_query($conn, "
@@ -200,12 +175,6 @@ if ($q) {
         $agama_data[]   = (int) $row['jumlah'];
     }
 }
-
-// ==========================
-// DIAGRAM 7: Tingkat Pendidikan Terakhir
-// Diurutkan dari jenjang terendah ke tertinggi (bukan berdasarkan jumlah),
-// supaya tren pendidikannya kelihatan jelas dari kiri ke kanan.
-// ==========================
 $urutan_pendidikan = [
     'TIDAK SEKOLAH', 'PAUD/TK', 'SD/SEDERAJAT', 'SLTP/SEDERAJAT', 'SLTA/SEDERAJAT',
     'DIPLOMA I/II/III', 'DIPLOMA IV/STRATA I', 'STRATA II', 'STRATA III',
@@ -224,7 +193,6 @@ if ($q) {
         }
     }
 }
-// Buang jenjang yang datanya nol supaya sumbu-x tidak penuh label kosong
 $pendidikan_labels = [];
 $pendidikan_data   = [];
 foreach ($pendidikan_jumlah as $label => $jumlah) {
@@ -233,14 +201,6 @@ foreach ($pendidikan_jumlah as $label => $jumlah) {
         $pendidikan_data[]   = $jumlah;
     }
 }
-
-// ==========================
-// DIAGRAM 8: Rasio Usia Produktif vs Tidak Produktif (Dependency Ratio)
-// Usia produktif: 15-64 tahun. Usia tidak produktif: <15 tahun atau >64 tahun.
-// Rasio ketergantungan = (tidak produktif / produktif) x 100
-// Semakin kecil persentasenya, semakin ringan "beban" penduduk usia produktif
-// menanggung penduduk usia non-produktif.
-// ==========================
 $usia_produktif = 0;
 $usia_muda      = 0;
 $usia_tua       = 0;
@@ -413,18 +373,6 @@ function fmt(int $n): string {
       <div class="card">
         <h4>Penduduk Tetap</h4>
         <p><strong><?= fmt($total_tetap) ?> Jiwa</strong></p>
-      </div>
-      <div class="card">
-        <h4>Penduduk Tidak Tetap</h4>
-        <p><strong><?= fmt($total_tidak_tetap) ?> Jiwa</strong></p>
-      </div>
-      <div class="card">
-        <h4>Penduduk Tidak Tetap</h4>
-        <p><strong><?= fmt($total_tidak_tetap) ?> Jiwa</strong></p>
-      </div>
-      <div class="card">
-        <h4>Penduduk Tidak Tetap</h4>
-        <p><strong><?= fmt($total_tidak_tetap) ?> Jiwa</strong></p>
       </div>
       <div class="card">
         <h4>Penduduk Tidak Tetap</h4>
