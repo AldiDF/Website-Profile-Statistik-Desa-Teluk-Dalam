@@ -50,38 +50,17 @@ function bersihkan(string $v): string
     return strtoupper($v);
 }
 
-function tentukan_kelengkapan(array $d, bool $kkTidakLengkap = false): string
+function tentukan_kelengkapan(array $d): string
 {
-    // Kalau No. KK keluarga ini sendiri sudah tidak standar (bukan 16 digit),
-    // semua anggotanya otomatis TIDAK LENGKAP, apa pun isian field lainnya.
-    if ($kkTidakLengkap) {
-        return 'TIDAK LENGKAP';
-    }
-
     $wajib = [
-        'nik',
-        'nama_lengkap',
-        'tempat_lahir',
-        'tanggal_lahir',
-        'jenis_kelamin',
-        'agama',
-        'pekerjaan',
-        'pendidikan_terakhir',
-        'kewarganegaraan',
-        'hubungan_keluarga',
+        'nik', 'nama_lengkap', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
+        'agama', 'pekerjaan', 'pendidikan_terakhir', 'kewarganegaraan', 'hubungan_keluarga',
     ];
     foreach ($wajib as $f) {
         if (empty($d[$f])) {
             return 'TIDAK LENGKAP';
         }
     }
-
-    // NIK sudah pasti terisi di titik ini (lolos pengecekan empty() di atas),
-    // tapi panjangnya harus TEPAT 16 digit supaya dianggap lengkap.
-    if (strlen((string) $d['nik']) !== 16) {
-        return 'TIDAK LENGKAP';
-    }
-
     return 'LENGKAP';
 }
 
@@ -114,11 +93,10 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
     $alamat  = bersihkan((string) ($kel['alamat_domisili'] ?? ''));
     $anggotaList = $kel['anggota'] ?? [];
     $labelKK = $nomorKK !== '' ? $nomorKK : ('baris data ke-' . ($idxKel + 1));
-    if (!ctype_digit($nomorKK) || strlen($nomorKK) > 16) {
-        $ringkasan['gagal'][] = "KK $labelKK: Nomor KK tidak valid (harus angka dan maksimal 16 digit).";
+    if (strlen($nomorKK) !== 16 || !ctype_digit($nomorKK)) {
+        $ringkasan['gagal'][] = "KK $labelKK: Nomor KK tidak valid (harus 16 digit angka).";
         continue;
     }
-    $kkTidakLengkap = (strlen($nomorKK) !== 16);
     mysqli_begin_transaction($conn);
     try {
         $keluargaLama = ambil_data_keluarga_by_nomor_kk($conn, $nomorKK);
@@ -178,7 +156,7 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
                 'status_penduduk'     => kosongKeNull(bersihkan((string) ($a['status_penduduk'] ?? 'PERMANEN'))),
                 'hubungan_keluarga'   => bersihkan((string) ($a['hubungan_keluarga'] ?? '')),
             ];
-            $dataBaru['status_lengkap'] = tentukan_kelengkapan($dataBaru, $kkTidakLengkap);
+            $dataBaru['status_lengkap'] = tentukan_kelengkapan($dataBaru);
 
             $dataLama = ambil_data_penduduk_by_nik($conn, $nik);
 
@@ -197,7 +175,7 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
                     $dataBaru['status_penduduk'],
                     (string) $id_keluarga,
                     $dataBaru['hubungan_keluarga'],
-                    $dataBaru['status_lengkap']
+                    $dataBaru['status_lengkap'],
                 );
                 if (!mysqli_stmt_execute($stmt)) {
                     if (mysqli_errno($conn) === 1062) {
@@ -205,7 +183,7 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
                     } else {
                         throw new Exception(
                             "Gagal menyimpan anggota NIK $nik. Error database: " . mysqli_error($conn)
-                                . " | Data yang dikirim: " . ringkas_data_untuk_pesan($dataBaru)
+                            . " | Data yang dikirim: " . ringkas_data_untuk_pesan($dataBaru)
                         );
                     }
                 } else {
@@ -223,7 +201,7 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
 
                 if (!$adaPerubahan) {
                     $ringkasan['anggota_dilewati']++;
-                    continue;
+                    continue; 
                 }
 
                 $stmt = edit_data_penduduk(
@@ -245,7 +223,7 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
                 if (!mysqli_stmt_execute($stmt)) {
                     throw new Exception(
                         "Gagal memperbarui anggota NIK $nik. Error database: " . mysqli_error($conn)
-                            . " | Data yang dikirim: " . ringkas_data_untuk_pesan($dataBaru)
+                        . " | Data yang dikirim: " . ringkas_data_untuk_pesan($dataBaru)
                     );
                 }
                 $ringkasan['anggota_diperbarui']++;

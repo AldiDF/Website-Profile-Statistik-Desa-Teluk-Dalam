@@ -279,7 +279,6 @@ if (!isset($conn)) {
             }
             return dp[m][n];
         }
-
         function cariTerdekat(teks, daftarKandidat, ambangRasio = 0.3) {
             let terbaik = null;
             let jarakTerbaik = Infinity;
@@ -444,33 +443,38 @@ if (!isset($conn)) {
         // Ekstraksi alamat & RT dari teks bebas, menangani BEBERAPA format sekaligus:
         // Format 1: "ALAMAT : xxx, NAMA DUSUN : -, RT/RW : 001/- NO RUMAH ..."
         // Format 2: "ALAMAT : xxx RT. 01"  (tanpa label "NAMA DUSUN"/"RT/RW")
-        function ekstrakAlamat(cellC) {
+        function ekstrakAlamatDanRT(cellC) {
             const teks = cellC.toString();
 
             // Ambil semua teks setelah "ALAMAT :" sebagai bahan mentah
             const mMentah = teks.match(/ALAMAT\s*:\s*(.*)/i);
             const sisaTeks = mMentah ? mMentah[1] : '';
 
-            // Potong di penanda pertama yang ditemukan, supaya alamat tetap bersih
+            // ===== RT: coba pola paling spesifik dulu, baru pola umum =====
+            let rt = '';
+            const polaRT = [
+                /RT\/RW\s*:\s*(\d+)/i, // "RT/RW : 001/-" (paling dipercaya, karena berlabel jelas)
+                /\bRT\.?\s*(\d{1,3})\b/i, // fallback: "RT. 01" atau "RT 01" di mana pun dalam teks
+            ];
+            for (const pola of polaRT) {
+                const m = teks.match(pola);
+                if (m) {
+                    rt = m[1].padStart(3, '0');
+                    break;
+                }
+            }
+
+            // ===== ALAMAT: potong di penanda pertama yang ditemukan =====
             let alamat = sisaTeks
                 .split(/,\s*NAMA DUSUN/i)[0] // buang ", Nama Dusun : ..." kalau ada
                 .split(/,?\s*RT\/RW/i)[0] // buang ", RT/RW : ..." kalau ada
                 .replace(/,?\s*RT\.?\s*\d{1,3}\s*$/i, '') // buang "RT. 01" kalau nempel di akhir kalimat
                 .trim();
 
-            return alamat;
-        }
-
-        function ekstrakRTdariNamaFile(namaFile) {
-            // Buang ekstensi (.xlsx/.xls) dulu supaya tidak ikut ke-scan
-            const namaBersih = namaFile.replace(/\.(xlsx|xls)$/i, '');
-
-            // Cocok untuk: "RT1", "RT 1", "RT 01", "RT 001", "rt1", "rt 1", "RT.1", dst
-            const m = namaBersih.match(/RT\s*\.?\s*(\d{1,3})/i);
-            if (m) {
-                return m[1].padStart(3, '0'); // hasil selalu 3 digit: "001", "010", "100"
-            }
-            return '';
+            return {
+                alamat,
+                rt
+            };
         }
 
         function excelDateToISO(v) {
@@ -514,23 +518,11 @@ if (!isset($conn)) {
             if (e.target.files.length) handleFile(e.target.files[0]);
         });
 
-
-
         function handleFile(file) {
             statusMsg.textContent = '';
             statusMsg.className = 'status-msg';
             fileInfo.style.display = 'block';
             fileInfo.textContent = `File dipilih: ${file.name}`;
-
-            const rtDariFile = ekstrakRTdariNamaFile(file.name);
-            if (rtDariFile === '') {
-                statusMsg.textContent = 'Nama file tidak mengandung info RT (contoh format yang benar: "RT1.xlsx", "RT 01.xlsx"). Import dibatalkan.';
-                statusMsg.className = 'status-msg error';
-                previewArea.innerHTML = '';
-                return;
-            }
-
-
             const reader = new FileReader();
             reader.onload = function(evt) {
                 try {
@@ -545,7 +537,7 @@ if (!isset($conn)) {
                         raw: false,
                         defval: ''
                     });
-                    dataKeluargaSiapKirim = parseSemuaKK(rows, rtDariFile);
+                    dataKeluargaSiapKirim = parseSemuaKK(rows);
                     tampilkanPreview(dataKeluargaSiapKirim);
                 } catch (err) {
                     statusMsg.textContent = 'Gagal membaca file: ' + err.message;
@@ -555,7 +547,7 @@ if (!isset($conn)) {
             reader.readAsArrayBuffer(file);
         }
 
-        function parseSemuaKK(rows, rtDariFile) {
+        function parseSemuaKK(rows) {
             const statusHeaderList = []; // { rowIndex, status }
             for (let i = 0; i < rows.length; i++) {
                 const cellA = (rows[i][0] || '').toString().trim().toUpperCase();
@@ -591,12 +583,15 @@ if (!isset($conn)) {
                 const cellA = (rowKK[0] || '').toString();
                 const cellC = (rowKK[2] || '').toString();
 
-                let nomorKK = '';
+                let nomorKK = '',
+                    rt = '',
+                    alamat = '';
                 const mKK = cellA.match(/(\d{16})/);
                 if (mKK) nomorKK = mKK[1];
 
-                const alamat = ekstrakAlamat(cellC);
-                const rt = rtDariFile;
+                const hasilEkstrak = ekstrakAlamatDanRT(cellC);
+                alamat = hasilEkstrak.alamat;
+                rt = hasilEkstrak.rt;
                 const endIdx = (k + 1 < indexKK.length) ? indexKK[k + 1] : rows.length;
                 const anggota = [];
                 for (let i = startIdx + 1; i < endIdx; i++) {
@@ -642,9 +637,8 @@ if (!isset($conn)) {
             kewarganegaraan: ['WNI', 'WNA'],
             status_penduduk: ['PERMANEN', 'NON PERMANEN', 'MENINGGAL'],
         };
-
         function nilaiEnumValid(kolom, nilai) {
-            if (!NILAI_VALID_ENUM[kolom]) return true;
+            if (!NILAI_VALID_ENUM[kolom]) return true; 
             if (!nilai) return true;
             return NILAI_VALID_ENUM[kolom].includes(nilai);
         }
@@ -670,7 +664,6 @@ if (!isset($conn)) {
                 '<th>No. KK</th><th>NIK</th><th>Nama</th><th>Tempat Lahir</th><th>Tgl Lahir</th>' +
                 '<th>JK</th><th>Hub. Keluarga</th><th>Agama</th><th>Pendidikan</th><th>Pekerjaan</th>' +
                 '<th>Kewarganegaraan</th><th>Status</th></tr></thead><tbody>';
-
             function selEnum(kolom, nilai) {
                 const valid = nilaiEnumValid(kolom, nilai);
                 if (!valid) adaNilaiMencurigakan = true;
@@ -698,9 +691,9 @@ if (!isset($conn)) {
             });
             detailHtml += '</tbody></table>';
 
-            const peringatan = adaNilaiMencurigakan ?
-                '<p style="color:#b91c1c; font-size:0.85rem; margin-top:0.6rem;">⚠️ Ada nilai (ditandai merah) yang tidak cocok dengan pilihan resmi di database. Ini kemungkinan besar akan menyebabkan error "Data truncated" saat proses import. Cek dan perbaiki dulu di file Excel sumbernya.</p>' :
-                '';
+            const peringatan = adaNilaiMencurigakan
+                ? '<p style="color:#b91c1c; font-size:0.85rem; margin-top:0.6rem;">⚠️ Ada nilai (ditandai merah) yang tidak cocok dengan pilihan resmi di database. Ini kemungkinan besar akan menyebabkan error "Data truncated" saat proses import. Cek dan perbaiki dulu di file Excel sumbernya.</p>'
+                : '';
 
             previewArea.innerHTML = html +
                 `<details style="margin-top:1rem;"><summary style="cursor:pointer; color:var(--hijau-tua); font-weight:600; font-size:0.88rem;">Lihat detail per anggota (${totalAnggota} orang) — cek hasil parsing sebelum import</summary>${peringatan}${detailHtml}</details>`;
