@@ -3,19 +3,24 @@ session_start();
 require '../databases/connection.php';
 
 if (!isset($conn)) {
-    die("Koneksi database tidak tersedia.");
+  die("Koneksi database tidak tersedia.");
 }
-$total_penduduk    = 0;
-$total_kk          = 0;
+$total_penduduk     = 0;
+$total_kk           = 0;
 $total_laki         = 0;
 $total_perempuan    = 0;
 $total_tetap        = 0;
 $total_tidak_tetap  = 0;
 $total_rt           = 0;
-$nama_kepala_desa   = "-"; 
-$luas_wilayah       = "443,40 km²"; 
+$nama_kepala_desa   = "-";
+$luas_wilayah       = "443,40 km²";
 
-$q = mysqli_query($conn, "SELECT COUNT(*) AS jumlah FROM penduduk");
+$q = mysqli_query($conn, "
+    SELECT COUNT(*) AS jumlah
+    FROM penduduk
+    WHERE status_penduduk IN ('PERMANEN', 'NON PERMANEN')
+      AND status_lengkap = 'LENGKAP'
+");
 if ($q) $total_penduduk = (int) mysqli_fetch_assoc($q)['jumlah'];
 
 $q = mysqli_query($conn, "SELECT COUNT(*) AS jumlah FROM keluarga");
@@ -26,19 +31,21 @@ $q = mysqli_query($conn, "
     SELECT jenis_kelamin, COUNT(*) AS jumlah
     FROM penduduk
     WHERE jenis_kelamin IS NOT NULL
+      AND status_penduduk IN ('PERMANEN', 'NON PERMANEN')
+      AND status_lengkap = 'LENGKAP'
     GROUP BY jenis_kelamin
 ");
 if ($q) {
-    while ($row = mysqli_fetch_assoc($q)) {
-        $label = ($row['jenis_kelamin'] === 'LAKI-LAKI') ? 'Laki-laki' : 'Perempuan';
-        $gender_labels[] = $label;
-        $gender_data[]   = (int) $row['jumlah'];
-        if ($row['jenis_kelamin'] === 'LAKI-LAKI') {
-            $total_laki = (int) $row['jumlah'];
-        } else {
-            $total_perempuan = (int) $row['jumlah'];
-        }
+  while ($row = mysqli_fetch_assoc($q)) {
+    $label = ($row['jenis_kelamin'] === 'LAKI-LAKI') ? 'Laki-laki' : 'Perempuan';
+    $gender_labels[] = $label;
+    $gender_data[]   = (int) $row['jumlah'];
+    if ($row['jenis_kelamin'] === 'LAKI-LAKI') {
+      $total_laki = (int) $row['jumlah'];
+    } else {
+      $total_perempuan = (int) $row['jumlah'];
     }
+  }
 }
 $status_labels = [];
 $status_data   = [];
@@ -46,24 +53,25 @@ $total_meninggal = 0;
 $q = mysqli_query($conn, "
     SELECT status_penduduk, COUNT(*) AS jumlah
     FROM penduduk
-    WHERE status_penduduk IS NOT NULL
+    WHERE status_penduduk IN ('PERMANEN', 'NON PERMANEN')
+      AND status_lengkap = 'LENGKAP'
     GROUP BY status_penduduk
 ");
 if ($q) {
-    while ($row = mysqli_fetch_assoc($q)) {
-        if ($row['status_penduduk'] === 'PERMANEN') {
-            $total_tetap = (int) $row['jumlah'];
-            $status_labels[] = 'Penduduk Tetap';
-            $status_data[]   = $total_tetap;
-        } elseif ($row['status_penduduk'] === 'NON PERMANEN') {
-            $total_tidak_tetap = (int) $row['jumlah'];
-            $status_labels[] = 'Penduduk Tidak Tetap';
-            $status_data[]   = $total_tidak_tetap;
-        } else {
-            // MENINGGAL - dicatat totalnya saja, tidak masuk diagram tetap/tidak tetap
-            $total_meninggal = (int) $row['jumlah'];
-        }
+  while ($row = mysqli_fetch_assoc($q)) {
+    if ($row['status_penduduk'] === 'PERMANEN') {
+      $total_tetap = (int) $row['jumlah'];
+      $status_labels[] = 'Penduduk Tetap';
+      $status_data[]   = $total_tetap;
+    } elseif ($row['status_penduduk'] === 'NON PERMANEN') {
+      $total_tidak_tetap = (int) $row['jumlah'];
+      $status_labels[] = 'Penduduk Tidak Tetap';
+      $status_data[]   = $total_tidak_tetap;
+    } else {
+      // MENINGGAL - dicatat totalnya saja, tidak masuk diagram tetap/tidak tetap
+      $total_meninggal = (int) $row['jumlah'];
     }
+  }
 }
 $pekerjaan_labels = [];
 $pekerjaan_data   = [];
@@ -75,28 +83,30 @@ $q = mysqli_query($conn, "
         END AS pekerjaan_bersih,
         COUNT(*) AS jumlah
     FROM penduduk
+    WHERE status_penduduk IN ('PERMANEN', 'NON PERMANEN')
+      AND status_lengkap = 'LENGKAP'
     GROUP BY pekerjaan_bersih
     ORDER BY jumlah DESC
 ");
 $pekerjaan_raw = [];
 if ($q) {
-    while ($row = mysqli_fetch_assoc($q)) {
-        $pekerjaan_raw[] = $row;
-    }
+  while ($row = mysqli_fetch_assoc($q)) {
+    $pekerjaan_raw[] = $row;
+  }
 }
 $batas_top_pekerjaan = 7;
 $lainnya_total = 0;
 foreach ($pekerjaan_raw as $i => $row) {
-    if ($i < $batas_top_pekerjaan) {
-        $pekerjaan_labels[] = $row['pekerjaan_bersih'];
-        $pekerjaan_data[]   = (int) $row['jumlah'];
-    } else {
-        $lainnya_total += (int) $row['jumlah'];
-    }
+  if ($i < $batas_top_pekerjaan) {
+    $pekerjaan_labels[] = $row['pekerjaan_bersih'];
+    $pekerjaan_data[]   = (int) $row['jumlah'];
+  } else {
+    $lainnya_total += (int) $row['jumlah'];
+  }
 }
 if ($lainnya_total > 0) {
-    $pekerjaan_labels[] = 'Lainnya';
-    $pekerjaan_data[]   = $lainnya_total;
+  $pekerjaan_labels[] = 'Lainnya';
+  $pekerjaan_data[]   = $lainnya_total;
 }
 $rt_labels = [];
 $rt_data   = [];
@@ -108,15 +118,29 @@ $q = mysqli_query($conn, "
     ORDER BY rt_num ASC
 ");
 if ($q) {
-    while ($row = mysqli_fetch_assoc($q)) {
-        $rt_labels[] = 'RT ' . $row['rt_num'];
-        $rt_data[]   = (int) $row['jumlah_kk'];
-    }
+  while ($row = mysqli_fetch_assoc($q)) {
+    $rt_labels[] = 'RT ' . $row['rt_num'];
+    $rt_data[]   = (int) $row['jumlah_kk'];
+  }
 }
 $total_rt = count($rt_labels);
 $kelompok_usia_urut = [
-    '0-4', '5-9', '10-14', '15-19', '20-24', '25-29', '30-34', '35-39',
-    '40-44', '45-49', '50-54', '55-59', '60-64', '65-69', '70-74', '75+',
+  '0-4',
+  '5-9',
+  '10-14',
+  '15-19',
+  '20-24',
+  '25-29',
+  '30-34',
+  '35-39',
+  '40-44',
+  '45-49',
+  '50-54',
+  '55-59',
+  '60-64',
+  '65-69',
+  '70-74',
+  '75+',
 ];
 $piramida_laki = array_fill_keys($kelompok_usia_urut, 0);
 $piramida_perempuan = array_fill_keys($kelompok_usia_urut, 0);
@@ -144,19 +168,22 @@ $q = mysqli_query($conn, "
         jenis_kelamin,
         COUNT(*) AS jumlah
     FROM penduduk
-    WHERE tanggal_lahir IS NOT NULL AND jenis_kelamin IS NOT NULL
+    WHERE tanggal_lahir IS NOT NULL
+      AND jenis_kelamin IS NOT NULL
+      AND status_penduduk IN ('PERMANEN', 'NON PERMANEN')
+      AND status_lengkap = 'LENGKAP'
     GROUP BY kelompok_usia, jenis_kelamin
 ");
 if ($q) {
-    while ($row = mysqli_fetch_assoc($q)) {
-        $kelompok = $row['kelompok_usia'];
-        if (!isset($piramida_laki[$kelompok])) continue; // jaga-jaga kalau ada nilai tak terduga
-        if ($row['jenis_kelamin'] === 'LAKI-LAKI') {
-            $piramida_laki[$kelompok] = (int) $row['jumlah'];
-        } else {
-            $piramida_perempuan[$kelompok] = (int) $row['jumlah'];
-        }
+  while ($row = mysqli_fetch_assoc($q)) {
+    $kelompok = $row['kelompok_usia'];
+    if (!isset($piramida_laki[$kelompok])) continue; // jaga-jaga kalau ada nilai tak terduga
+    if ($row['jenis_kelamin'] === 'LAKI-LAKI') {
+      $piramida_laki[$kelompok] = (int) $row['jumlah'];
+    } else {
+      $piramida_perempuan[$kelompok] = (int) $row['jumlah'];
     }
+  }
 }
 $piramida_laki_data = array_map(fn($v) => -$v, array_values($piramida_laki));
 $piramida_perempuan_data = array_values($piramida_perempuan);
@@ -166,40 +193,51 @@ $q = mysqli_query($conn, "
     SELECT agama, COUNT(*) AS jumlah
     FROM penduduk
     WHERE agama IS NOT NULL
+      AND status_penduduk IN ('PERMANEN', 'NON PERMANEN')
+      AND status_lengkap = 'LENGKAP'
     GROUP BY agama
     ORDER BY jumlah DESC
 ");
 if ($q) {
-    while ($row = mysqli_fetch_assoc($q)) {
-        $agama_labels[] = ucfirst(strtolower($row['agama']));
-        $agama_data[]   = (int) $row['jumlah'];
-    }
+  while ($row = mysqli_fetch_assoc($q)) {
+    $agama_labels[] = ucfirst(strtolower($row['agama']));
+    $agama_data[]   = (int) $row['jumlah'];
+  }
 }
 $urutan_pendidikan = [
-    'TIDAK SEKOLAH', 'PAUD/TK', 'SD/SEDERAJAT', 'SLTP/SEDERAJAT', 'SLTA/SEDERAJAT',
-    'DIPLOMA I/II/III', 'DIPLOMA IV/STRATA I', 'STRATA II', 'STRATA III',
+  'TIDAK SEKOLAH',
+  'PAUD/TK',
+  'SD/SEDERAJAT',
+  'SLTP/SEDERAJAT',
+  'SLTA/SEDERAJAT',
+  'DIPLOMA I/II/III',
+  'DIPLOMA IV/STRATA I',
+  'STRATA II',
+  'STRATA III',
 ];
 $pendidikan_jumlah = array_fill_keys($urutan_pendidikan, 0);
 $q = mysqli_query($conn, "
     SELECT pendidikan_terakhir, COUNT(*) AS jumlah
     FROM penduduk
     WHERE pendidikan_terakhir IS NOT NULL
+      AND status_penduduk IN ('PERMANEN', 'NON PERMANEN')
+      AND status_lengkap = 'LENGKAP'
     GROUP BY pendidikan_terakhir
 ");
 if ($q) {
-    while ($row = mysqli_fetch_assoc($q)) {
-        if (isset($pendidikan_jumlah[$row['pendidikan_terakhir']])) {
-            $pendidikan_jumlah[$row['pendidikan_terakhir']] = (int) $row['jumlah'];
-        }
+  while ($row = mysqli_fetch_assoc($q)) {
+    if (isset($pendidikan_jumlah[$row['pendidikan_terakhir']])) {
+      $pendidikan_jumlah[$row['pendidikan_terakhir']] = (int) $row['jumlah'];
     }
+  }
 }
 $pendidikan_labels = [];
 $pendidikan_data   = [];
 foreach ($pendidikan_jumlah as $label => $jumlah) {
-    if ($jumlah > 0) {
-        $pendidikan_labels[] = $label;
-        $pendidikan_data[]   = $jumlah;
-    }
+  if ($jumlah > 0) {
+    $pendidikan_labels[] = $label;
+    $pendidikan_data[]   = $jumlah;
+  }
 }
 $usia_produktif = 0;
 $usia_muda      = 0;
@@ -211,26 +249,30 @@ $q = mysqli_query($conn, "
         SUM(CASE WHEN TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE()) > 64 THEN 1 ELSE 0 END) AS usia_tua
     FROM penduduk
     WHERE tanggal_lahir IS NOT NULL
+      AND status_penduduk IN ('PERMANEN', 'NON PERMANEN')
+      AND status_lengkap = 'LENGKAP'
 ");
 if ($q) {
-    $row = mysqli_fetch_assoc($q);
-    $usia_produktif = (int) $row['produktif'];
-    $usia_muda      = (int) $row['usia_muda'];
-    $usia_tua       = (int) $row['usia_tua'];
+  $row = mysqli_fetch_assoc($q);
+  $usia_produktif = (int) $row['produktif'];
+  $usia_muda      = (int) $row['usia_muda'];
+  $usia_tua       = (int) $row['usia_tua'];
 }
 $rasio_ketergantungan = $usia_produktif > 0
-    ? round((($usia_muda + $usia_tua) / $usia_produktif) * 100, 1)
-    : 0;
+  ? round((($usia_muda + $usia_tua) / $usia_produktif) * 100, 1)
+  : 0;
 
 // Helper format angka gaya Indonesia: 3250 -> "3.250"
-function fmt(int $n): string {
-    return number_format($n, 0, ',', '.');
+function fmt(int $n): string
+{
+  return number_format($n, 0, ',', '.');
 }
 ?>
 
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -250,14 +292,17 @@ function fmt(int $n): string {
       padding-left: 0.6rem;
       border-left: 4px solid #f4b400;
     }
+
     .chart-group-title:first-of-type {
       margin-top: 1.5rem;
     }
+
     .chart-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 1.5rem;
     }
+
     .chart-card {
       background: #fff;
       border-radius: 14px;
@@ -266,32 +311,39 @@ function fmt(int $n): string {
       display: flex;
       flex-direction: column;
     }
+
     .chart-card.full {
       grid-column: 1 / -1;
     }
+
     .chart-card h4 {
       text-align: center;
       font-size: 0.95rem;
       color: #0c3c2e;
       margin-bottom: 0.3rem;
     }
+
     .chart-card .sub {
       text-align: center;
       font-size: 0.78rem;
       color: #898781;
       margin-bottom: 0.8rem;
     }
+
     .chart-card .canvas-wrap {
       position: relative;
       width: 100%;
       height: 260px;
     }
+
     .chart-card.full .canvas-wrap {
       height: 320px;
     }
+
     .chart-card.full .canvas-wrap.tall {
       height: 420px;
     }
+
     .chart-card .highlight {
       text-align: center;
       font-size: 0.85rem;
@@ -300,6 +352,7 @@ function fmt(int $n): string {
     }
   </style>
 </head>
+
 <body>
 
   <header>
@@ -465,26 +518,26 @@ function fmt(int $n): string {
   </footer>
 
   <script>
-    const genderLabels    = <?= json_encode($gender_labels, JSON_UNESCAPED_UNICODE) ?>;
-    const genderData      = <?= json_encode($gender_data) ?>;
-    const statusLabels    = <?= json_encode($status_labels, JSON_UNESCAPED_UNICODE) ?>;
-    const statusData      = <?= json_encode($status_data) ?>;
+    const genderLabels = <?= json_encode($gender_labels, JSON_UNESCAPED_UNICODE) ?>;
+    const genderData = <?= json_encode($gender_data) ?>;
+    const statusLabels = <?= json_encode($status_labels, JSON_UNESCAPED_UNICODE) ?>;
+    const statusData = <?= json_encode($status_data) ?>;
     const pekerjaanLabels = <?= json_encode($pekerjaan_labels, JSON_UNESCAPED_UNICODE) ?>;
-    const pekerjaanData   = <?= json_encode($pekerjaan_data) ?>;
-    const rtLabels        = <?= json_encode($rt_labels, JSON_UNESCAPED_UNICODE) ?>;
-    const rtData          = <?= json_encode($rt_data) ?>;
-    const piramidaKelompokUsia   = <?= json_encode($kelompok_usia_urut, JSON_UNESCAPED_UNICODE) ?>;
-    const piramidaLakiData       = <?= json_encode($piramida_laki_data) ?>;
-    const piramidaPerempuanData  = <?= json_encode($piramida_perempuan_data) ?>;
+    const pekerjaanData = <?= json_encode($pekerjaan_data) ?>;
+    const rtLabels = <?= json_encode($rt_labels, JSON_UNESCAPED_UNICODE) ?>;
+    const rtData = <?= json_encode($rt_data) ?>;
+    const piramidaKelompokUsia = <?= json_encode($kelompok_usia_urut, JSON_UNESCAPED_UNICODE) ?>;
+    const piramidaLakiData = <?= json_encode($piramida_laki_data) ?>;
+    const piramidaPerempuanData = <?= json_encode($piramida_perempuan_data) ?>;
 
-    const agamaLabels     = <?= json_encode($agama_labels, JSON_UNESCAPED_UNICODE) ?>;
-    const agamaData       = <?= json_encode($agama_data) ?>;
+    const agamaLabels = <?= json_encode($agama_labels, JSON_UNESCAPED_UNICODE) ?>;
+    const agamaData = <?= json_encode($agama_data) ?>;
 
     const pendidikanLabels = <?= json_encode($pendidikan_labels, JSON_UNESCAPED_UNICODE) ?>;
-    const pendidikanData   = <?= json_encode($pendidikan_data) ?>;
+    const pendidikanData = <?= json_encode($pendidikan_data) ?>;
 
     const dependencyLabels = ['Usia Produktif (15-64 th)', 'Usia Non-Produktif'];
-    const dependencyData   = [<?= $usia_produktif ?>, <?= $usia_muda + $usia_tua ?>];
+    const dependencyData = [<?= $usia_produktif ?>, <?= $usia_muda + $usia_tua ?>];
 
     new Chart(document.getElementById('genderChart'), {
       type: 'doughnut',
@@ -500,7 +553,11 @@ function fmt(int $n): string {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } }
+        plugins: {
+          legend: {
+            position: 'bottom'
+          }
+        }
       }
     });
     new Chart(document.getElementById('statusChart'), {
@@ -517,10 +574,29 @@ function fmt(int $n): string {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
         scales: {
-          y: { beginAtZero: true, ticks: { color: '#898781' }, grid: { color: '#e1e0d9' } },
-          x: { ticks: { color: '#898781' }, grid: { display: false } }
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: '#898781'
+            },
+            grid: {
+              color: '#e1e0d9'
+            }
+          },
+          x: {
+            ticks: {
+              color: '#898781'
+            },
+            grid: {
+              display: false
+            }
+          }
         }
       }
     });
@@ -536,13 +612,32 @@ function fmt(int $n): string {
         }]
       },
       options: {
-        indexAxis: 'y', 
+        indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
         scales: {
-          x: { beginAtZero: true, ticks: { color: '#898781' }, grid: { color: '#e1e0d9' } },
-          y: { ticks: { color: '#898781' }, grid: { display: false } }
+          x: {
+            beginAtZero: true,
+            ticks: {
+              color: '#898781'
+            },
+            grid: {
+              color: '#e1e0d9'
+            }
+          },
+          y: {
+            ticks: {
+              color: '#898781'
+            },
+            grid: {
+              display: false
+            }
+          }
         }
       }
     });
@@ -561,10 +656,30 @@ function fmt(int $n): string {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
         scales: {
-          y: { beginAtZero: true, ticks: { color: '#898781', stepSize: 1 }, grid: { color: '#e1e0d9' } },
-          x: { ticks: { color: '#898781' }, grid: { display: false } }
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: '#898781',
+              stepSize: 1
+            },
+            grid: {
+              color: '#e1e0d9'
+            }
+          },
+          x: {
+            ticks: {
+              color: '#898781'
+            },
+            grid: {
+              display: false
+            }
+          }
         }
       }
     });
@@ -572,8 +687,7 @@ function fmt(int $n): string {
       type: 'bar',
       data: {
         labels: piramidaKelompokUsia,
-        datasets: [
-          {
+        datasets: [{
             label: 'Laki-laki',
             data: piramidaLakiData,
             backgroundColor: '#2a78d6',
@@ -592,7 +706,9 @@ function fmt(int $n): string {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { position: 'top' },
+          legend: {
+            position: 'top'
+          },
           tooltip: {
             callbacks: {
               label: (ctx) => `${ctx.dataset.label}: ${Math.abs(ctx.raw)} jiwa`
@@ -606,11 +722,18 @@ function fmt(int $n): string {
               color: '#898781',
               callback: (val) => Math.abs(val)
             },
-            grid: { color: '#e1e0d9' }
+            grid: {
+              color: '#e1e0d9'
+            }
           },
           y: {
-            ticks: { color: '#898781' },
-            grid: { display: false }
+            reverse: true, // <-- membalik urutan: kelompok termuda di BAWAH, tertua di ATAS
+            ticks: {
+              color: '#898781'
+            },
+            grid: {
+              display: false
+            }
           }
         }
       }
@@ -629,7 +752,17 @@ function fmt(int $n): string {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              boxWidth: 12,
+              font: {
+                size: 11
+              }
+            }
+          }
+        }
       }
     });
     new Chart(document.getElementById('pendidikanChart'), {
@@ -645,10 +778,34 @@ function fmt(int $n): string {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
         scales: {
-          y: { beginAtZero: true, ticks: { color: '#898781' }, grid: { color: '#e1e0d9' } },
-          x: { ticks: { color: '#898781', font: { size: 10 }, maxRotation: 40, minRotation: 40 }, grid: { display: false } }
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: '#898781'
+            },
+            grid: {
+              color: '#e1e0d9'
+            }
+          },
+          x: {
+            ticks: {
+              color: '#898781',
+              font: {
+                size: 10
+              },
+              maxRotation: 40,
+              minRotation: 40
+            },
+            grid: {
+              display: false
+            }
+          }
         }
       }
     });
@@ -667,10 +824,21 @@ function fmt(int $n): string {
         responsive: true,
         maintainAspectRatio: false,
         cutout: '60%',
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              boxWidth: 12,
+              font: {
+                size: 11
+              }
+            }
+          }
+        }
       }
     });
   </script>
 
 </body>
+
 </html>

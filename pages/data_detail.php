@@ -381,10 +381,7 @@ function render_anggota_block($a, $nomor)
             </div>
             <div class="form-group">
                 <label>Status Hubungan Dalam Keluarga</label>
-                <select name="hubungan_keluarga[]" required>
-                    <option value="">-- Pilih --</option>
-                    <?= opsi_select('hubungan_keluarga', ['KEPALA KELUARGA', 'SUAMI', 'ISTRI', 'ANAK', 'CUCU', 'ORANG TUA', 'MERTUA', 'MENANTU', 'SAUDARA', 'FAMILI LAIN'], $a['hubungan_keluarga'] ?? '') ?>
-                </select>
+                <input type="text" name="hubungan_keluarga[]" maxlength="20" required>
             </div>
 
             <div class="form-group">
@@ -801,18 +798,21 @@ function render_anggota_block($a, $nomor)
         // persis, supaya hasil yang sudah pasti benar tidak ikut "ditebak-tebak" ulang.
         // ==========================
         function levenshtein(a, b) {
-            const m = a.length, n = b.length;
+            const m = a.length,
+                n = b.length;
             if (m === 0) return n;
             if (n === 0) return m;
-            const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+            const dp = Array.from({
+                length: m + 1
+            }, () => new Array(n + 1).fill(0));
             for (let i = 0; i <= m; i++) dp[i][0] = i;
             for (let j = 0; j <= n; j++) dp[0][j] = j;
             for (let i = 1; i <= m; i++) {
                 for (let j = 1; j <= n; j++) {
                     const cost = a[i - 1] === b[j - 1] ? 0 : 1;
                     dp[i][j] = Math.min(
-                        dp[i - 1][j] + 1,       // hapus 1 huruf
-                        dp[i][j - 1] + 1,       // tambah 1 huruf
+                        dp[i - 1][j] + 1, // hapus 1 huruf
+                        dp[i][j - 1] + 1, // tambah 1 huruf
                         dp[i - 1][j - 1] + cost // ganti 1 huruf
                     );
                 }
@@ -865,7 +865,7 @@ function render_anggota_block($a, $nomor)
             'SMK/SEDERAJAT': 'SLTA/SEDERAJAT',
             'SMK': 'SLTA/SEDERAJAT',
 
-           
+
             'DIPLOMA I/II/III': 'DIPLOMA I/II/III',
             'DIPLOMA/SEDERAJAT': 'DIPLOMA I/II/III',
             'DIPLOMA': 'DIPLOMA I/II/III',
@@ -914,6 +914,7 @@ function render_anggota_block($a, $nomor)
             return key;
         }
         const JENIS_KELAMIN_FUZZY = ['LAKI-LAKI', 'LAKI LAKI', 'PEREMPUAN', 'WANITA', 'PRIA'];
+
         function normalisasiJenisKelamin(v) {
             if (!v) return '';
             const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
@@ -929,7 +930,8 @@ function render_anggota_block($a, $nomor)
                 if (cocokFuzzy === 'PEREMPUAN' || cocokFuzzy === 'WANITA') return 'PEREMPUAN';
             }
             return key;
-        }const MAP_AGAMA = {
+        }
+        const MAP_AGAMA = {
             'ISLAM': 'ISLAM',
             'MUSLIM': 'ISLAM',
 
@@ -958,11 +960,12 @@ function render_anggota_block($a, $nomor)
             if (!v) return '';
             const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
             if (MAP_AGAMA[key]) return MAP_AGAMA[key];
-           
+
             const cocokFuzzy = cariTerdekat(key, DAFTAR_KEY_AGAMA);
             if (cocokFuzzy) return MAP_AGAMA[cocokFuzzy];
-            return key; 
-        }const HUBUNGAN_DIKENAL = [
+            return key;
+        }
+        const HUBUNGAN_DIKENAL = [
             'KEPALA KELUARGA', 'SUAMI', 'ISTRI', 'ANAK', 'CUCU',
             'ORANG TUA', 'MERTUA', 'MENANTU', 'SAUDARA', 'FAMILI LAIN',
         ];
@@ -970,6 +973,7 @@ function render_anggota_block($a, $nomor)
             'ORANGTUA': 'ORANG TUA',
             'ORANG TUA/MERTUA': 'ORANG TUA',
         };
+
         function normalisasiHubungan(v) {
             if (!v) return '';
             const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
@@ -1020,7 +1024,7 @@ function render_anggota_block($a, $nomor)
             document.getElementById('importExcelInput').click();
         });
 
-        document.getElementById('importExcelInput').addEventListener('change', function (e) {
+        document.getElementById('importExcelInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             e.target.value = '';
             if (!file) return;
@@ -1031,12 +1035,19 @@ function render_anggota_block($a, $nomor)
             }
 
             const reader = new FileReader();
-            reader.onload = function (evt) {
+            reader.onload = function(evt) {
                 try {
                     const data = new Uint8Array(evt.target.result);
-                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                    const workbook = XLSX.read(data, {
+                        type: 'array',
+                        cellDates: true
+                    });
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
+                    const rows = XLSX.utils.sheet_to_json(sheet, {
+                        header: 1,
+                        raw: false,
+                        defval: ''
+                    });
                     prosesImportExcel(rows);
                 } catch (err) {
                     alert('Gagal membaca file Excel: ' + err.message);
@@ -1046,7 +1057,9 @@ function render_anggota_block($a, $nomor)
         });
 
         function prosesImportExcel(rows) {
-            let nomorKK = '', rt = '', alamat = '';
+            let nomorKK = '',
+                rt = '',
+                alamat = '';
             let headerRowIdx = -1;
             let nomorKKRowIdx = -1;
             // Kumpulkan semua header "PERIODE ... ( PENDUDUK PERMANEN/NON PERMANEN)" beserta posisi barisnya.
@@ -1060,7 +1073,10 @@ function render_anggota_block($a, $nomor)
 
                 if (cellA.trim().toUpperCase().startsWith('NO. KK')) {
                     const mKK = cellA.match(/(\d{16})/);
-                    if (mKK) { nomorKK = mKK[1]; nomorKKRowIdx = i; }
+                    if (mKK) {
+                        nomorKK = mKK[1];
+                        nomorKKRowIdx = i;
+                    }
                 }
                 if (cellA.trim().toUpperCase().startsWith('ALAMAT')) {
                     const mAlamat = cellA.match(/ALAMAT\s*:\s*(.*?),\s*NAMA DUSUN/i);
@@ -1084,7 +1100,10 @@ function render_anggota_block($a, $nomor)
                     let status = 'PERMANEN';
                     if (/NON PERMANEN/i.test(cellRT)) status = 'NON PERMANEN';
                     else if (/PERMANEN/i.test(cellRT)) status = 'PERMANEN';
-                    statusHeaderList.push({ rowIndex: i, status: status });
+                    statusHeaderList.push({
+                        rowIndex: i,
+                        status: status
+                    });
                 }
             }
 
@@ -1242,18 +1261,7 @@ function render_anggota_block($a, $nomor)
                     </div>
                     <div class="form-group">
                         <label>Status Hubungan Dalam Keluarga</label>
-                        <select name="hubungan_keluarga[]" required>
-                            <option value="KEPALA KELUARGA">KEPALA KELUARGA</option>
-                            <option value="SUAMI">SUAMI</option>
-                            <option value="ISTRI">ISTRI</option>
-                            <option value="ANAK">ANAK</option>
-                            <option value="MENANTU">MENANTU</option>
-                            <option value="CUCU">CUCU</option>
-                            <option value="ORANG TUA">ORANG TUA</option>
-                            <option value="MERTUA">MERTUA</option>
-                            <option value="FAMILI LAIN">FAMILI LAIN</option>
-                            <option value="PEMBANTU/SOPIR/ASISTEN RUMAH TANGGA/PENGASUH">PEMBANTU/SOPIR/ASISTEN RUMAH TANGGA/PENGASUH</option>
-                        </select>
+                        <input type="text" name="hubungan_keluarga[]" maxlength="20" required>
                     </div>
                     <div class="form-group">
                         <label>Kewarganegaraan</label>

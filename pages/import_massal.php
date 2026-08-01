@@ -206,6 +206,24 @@ if (!isset($conn)) {
         .status-msg.ok {
             color: var(--hijau-tua);
         }
+
+        .status-permanen {
+            background: #dcfce7;
+            color: #15803d;
+            padding: 0.15rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .status-non-permanen {
+            background: #fef9c3;
+            color: #a16207;
+            padding: 0.15rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
     </style>
 </head>
 
@@ -302,12 +320,21 @@ if (!isset($conn)) {
             'TDK/BELUM SEKOLAH': 'TIDAK SEKOLAH',
             'TIDAK/BELUM SEKOLAH': 'TIDAK SEKOLAH',
             '': 'TIDAK SEKOLAH',
+            'BELUM TAMATSD/SEDERAJAT': 'TIDAK SEKOLAH',
+            'BELUM/TIDAK TURUN' : 'TIDAK SEKOLAH',
 
+            'TK': 'PAUD/TK',
+            'PAUD': 'PAUD/TK',
+            'PAUD/TK': 'PAUD/TK',
+            'PAUD/TK SEDERAJAT' : 'PAUD/TK',
+            'PELAJAR TK/SEDERAJAT' : 'PAUD/TK',
 
             'SD/SEDERAJAT': 'SD/SEDERAJAT',
             'SD': 'SD/SEDERAJAT',
+            'Tk/SD' : 'SD/SEDERAJAT',
             'SEDERAJAT SD': 'SD/SEDERAJAT',
             'TAMAT SD/SEDERAJAT': 'SD/SEDERAJAT',
+            'PELAJAR/SD' : 'SD/SEDERAJAT',
 
             'SLTP/SEDERAJAT': 'SLTP/SEDERAJAT',
             'SMP/SEDERAJAT': 'SLTP/SEDERAJAT',
@@ -335,6 +362,7 @@ if (!isset($conn)) {
             'D2': 'DIPLOMA I/II/III',
             'D3': 'DIPLOMA I/II/III',
             'AKADEMI/D3': 'DIPLOMA I/II/III',
+            'AKADEMI/DIPLOMA III/SARJANA MUDA' : 'DIPLOMA I/II/III',
             'DIPLOMA IV/STRATA I': 'DIPLOMA IV/STRATA I',
             'DIPLOMA IV/SEDERAJAT': 'DIPLOMA IV/STRATA I',
             'D-IV/SEDERAJAT': 'DIPLOMA IV/STRATA I',
@@ -344,18 +372,21 @@ if (!isset($conn)) {
             'S1': 'DIPLOMA IV/STRATA I',
             'STRATA I': 'DIPLOMA IV/STRATA I',
             'STRATA I/SEDERAJAT': 'DIPLOMA IV/STRATA I',
+            'SARJANA (S1)': 'DIPLOMA IV/STRATA I',
 
             'S2/SEDERAJAT': 'STRATA II',
             'S2': 'STRATA II',
             'STRATA II': 'STRATA II',
             'STRATA II/SEDERAJAT': 'STRATA II',
             'MAGISTER': 'STRATA II',
+            'MAGISTER (S2)': 'STRATA II',
 
             'S3/SEDERAJAT': 'STRATA III',
             'S3': 'STRATA III',
             'STRATA III': 'STRATA III',
             'STRATA III/SEDERAJAT': 'STRATA III',
             'DOKTOR': 'STRATA III',
+            'DOKTOR (S3)': 'STRATA III',
         };
         const DAFTAR_KEY_PENDIDIKAN = Object.keys(MAP_PENDIDIKAN);
 
@@ -612,6 +643,15 @@ if (!isset($conn)) {
                 const anggota = [];
                 for (let i = startIdx + 1; i < endIdx; i++) {
                     const row = rows[i];
+                    const cellKolomKK = (row[0] || '').toString().trim();
+
+                    // Penanda akhir tabel: kolom "No. KK" cuma berisi dash ('-', '--', '---', dst)
+                    // -> berhenti membaca anggota untuk KK ini, apa pun yang ada di baris-baris setelahnya
+                    //    sampai KK berikutnya (entah masih sisa sampah transisi atau sudah masuk tabel 2) diabaikan.
+                    if (/^-+$/.test(cellKolomKK)) {
+                        break;
+                    }
+
                     const nama = (row[1] || '').toString().trim();
                     const nik = (row[2] || '').toString().trim();
                     if (!nama && !nik) continue;
@@ -660,6 +700,38 @@ if (!isset($conn)) {
             return NILAI_VALID_ENUM[kolom].includes(nilai);
         }
 
+        function deteksiNikDuplikatLintasKK(daftarKeluarga) {
+            // Kumpulkan semua NIK yang muncul, simpan di KK mana saja dia terlihat
+            const petaNik = {}; // { nik: [ {nomor_kk, nama, hubungan}, ... ] }
+
+            daftarKeluarga.forEach(k => {
+                k.anggota.forEach(a => {
+                    const nik = (a.nik || '').trim();
+                    if (nik === '') return; // NIK kosong tidak bisa dibandingkan, lewati
+
+                    if (!petaNik[nik]) petaNik[nik] = [];
+                    petaNik[nik].push({
+                        nomor_kk: k.nomor_kk,
+                        nama: a.nama_lengkap || '(tanpa nama)',
+                        hubungan: a.hubungan_keluarga || '(tanpa hubungan)',
+                    });
+                });
+            });
+
+            // Ambil NIK yang muncul di LEBIH DARI 1 KK yang BERBEDA
+            const duplikat = [];
+            for (const nik in petaNik) {
+                const kkUnik = [...new Set(petaNik[nik].map(x => x.nomor_kk))];
+                if (kkUnik.length > 1) {
+                    duplikat.push({
+                        nik,
+                        kemunculan: petaNik[nik]
+                    });
+                }
+            }
+            return duplikat;
+        }
+
         function tampilkanPreview(daftarKeluarga) {
             if (daftarKeluarga.length === 0) {
                 previewArea.innerHTML = '';
@@ -671,10 +743,24 @@ if (!isset($conn)) {
 
             let totalAnggota = 0;
             let adaNilaiMencurigakan = false;
-            let html = '<table class="preview-table"><thead><tr><th>No. KK</th><th>RT</th><th>Alamat</th><th>Jumlah Anggota</th></tr></thead><tbody>';
-            daftarKeluarga.forEach(k => {
+            let html = '<table class="preview-table"><thead><tr>' +
+                '<th>No.</th><th>No. KK</th><th>RT</th><th>Alamat</th><th>Jumlah Anggota</th><th>Status Penduduk</th>' +
+                '</tr></thead><tbody>';
+            daftarKeluarga.forEach((k, idx) => {
                 totalAnggota += k.anggota.length;
-                html += `<tr><td>${k.nomor_kk}</td><td>${k.rt || '-'}</td><td>${k.alamat_domisili || '-'}</td><td>${k.anggota.length}</td></tr>`;
+                // Status penduduk diambil dari anggota pertama, karena satu KK selalu
+                // berasal dari 1 blok tabel yang sama (semua anggotanya pasti sama statusnya)
+                const statusKK = k.anggota.length > 0 ? k.anggota[0].status_penduduk : '-';
+                const badgeClass = statusKK === 'NON PERMANEN' ? 'status-non-permanen' : 'status-permanen';
+
+                html += `<tr>
+        <td>${idx + 1}.</td>
+        <td>${k.nomor_kk}</td>
+        <td>${k.rt || '-'}</td>
+        <td>${k.alamat_domisili || '-'}</td>
+        <td>${k.anggota.length}</td>
+        <td><span class="${badgeClass}">${statusKK || '-'}</span></td>
+    </tr>`;
             });
             html += '</tbody></table>';
             let detailHtml = '<table class="preview-table anggota-table"><thead><tr>' +
@@ -709,12 +795,33 @@ if (!isset($conn)) {
             });
             detailHtml += '</tbody></table>';
 
-            const peringatan = adaNilaiMencurigakan ?
+            const peringatanEnum = adaNilaiMencurigakan ?
                 '<p style="color:#b91c1c; font-size:0.85rem; margin-top:0.6rem;">⚠️ Ada nilai (ditandai merah) yang tidak cocok dengan pilihan resmi di database. Ini kemungkinan besar akan menyebabkan error "Data truncated" saat proses import. Cek dan perbaiki dulu di file Excel sumbernya.</p>' :
                 '';
 
+            // ===== DETEKSI NIK DUPLIKAT LINTAS KK =====
+            const nikDuplikat = deteksiNikDuplikatLintasKK(daftarKeluarga);
+            let peringatanDuplikat = '';
+            if (nikDuplikat.length > 0) {
+                let daftarHtml = '<ul style="margin:0.4rem 0 0 1.2rem; padding:0;">';
+                nikDuplikat.forEach(d => {
+                    const lokasi = d.kemunculan
+                        .map(k => `KK ${k.nomor_kk} (sebagai ${k.hubungan})`)
+                        .join(', ');
+                    daftarHtml += `<li style="margin-bottom:0.2rem;">NIK <strong>${d.nik}</strong> (${d.kemunculan[0].nama}) ditemukan di: ${lokasi}</li>`;
+                });
+                daftarHtml += '</ul>';
+
+                peringatanDuplikat = `<p style="color:#a16207; font-size:0.85rem; margin-top:0.6rem;">
+        ⚠️ Ditemukan ${nikDuplikat.length} NIK yang tercatat di lebih dari 1 KK berbeda dalam file ini.
+        Ini bisa jadi orang yang sama sudah "pindah" KK (misal dari anak jadi istri), atau bisa juga salah ketik NIK.
+        Sistem tetap akan memproses semuanya (data terakhir akan menimpa KK sebelumnya), tapi sebaiknya diperiksa dulu:
+        ${daftarHtml}
+    </p>`;
+            }
+
             previewArea.innerHTML = html +
-                `<details style="margin-top:1rem;"><summary style="cursor:pointer; color:var(--hijau-tua); font-weight:600; font-size:0.88rem;">Lihat detail per anggota (${totalAnggota} orang) — cek hasil parsing sebelum import</summary>${peringatan}${detailHtml}</details>`;
+                `<details style="margin-top:1rem;"><summary style="cursor:pointer; color:var(--hijau-tua); font-weight:600; font-size:0.88rem;">Lihat detail per anggota (${totalAnggota} orang) — cek hasil parsing sebelum import</summary>${peringatanEnum}${peringatanDuplikat}${detailHtml}</details>`;
 
             statusMsg.textContent = `Terbaca ${daftarKeluarga.length} KK, total ${totalAnggota} anggota.`;
             statusMsg.className = 'status-msg';
