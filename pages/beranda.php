@@ -1,7 +1,6 @@
 <?php
 session_start();
 require '../databases/connection.php';
-
 if (!isset($conn)) {
   die("Koneksi database tidak tersedia.");
 }
@@ -14,7 +13,6 @@ $total_tidak_tetap  = 0;
 $total_rt           = 0;
 $nama_kepala_desa   = "-";
 $luas_wilayah       = "443,40 km²";
-
 $q = mysqli_query($conn, "
     SELECT COUNT(*) AS jumlah
     FROM penduduk
@@ -68,7 +66,6 @@ if ($q) {
       $status_labels[] = 'Penduduk Tidak Tetap';
       $status_data[]   = $total_tidak_tetap;
     } else {
-      // MENINGGAL - dicatat totalnya saja, tidak masuk diagram tetap/tidak tetap
       $total_meninggal = (int) $row['jumlah'];
     }
   }
@@ -177,7 +174,7 @@ $q = mysqli_query($conn, "
 if ($q) {
   while ($row = mysqli_fetch_assoc($q)) {
     $kelompok = $row['kelompok_usia'];
-    if (!isset($piramida_laki[$kelompok])) continue; // jaga-jaga kalau ada nilai tak terduga
+    if (!isset($piramida_laki[$kelompok])) continue;
     if ($row['jenis_kelamin'] === 'LAKI-LAKI') {
       $piramida_laki[$kelompok] = (int) $row['jumlah'];
     } else {
@@ -261,8 +258,6 @@ if ($q) {
 $rasio_ketergantungan = $usia_produktif > 0
   ? round((($usia_muda + $usia_tua) / $usia_produktif) * 100, 1)
   : 0;
-
-// Helper format angka gaya Indonesia: 3250 -> "3.250"
 function fmt(int $n): string
 {
   return number_format($n, 0, ',', '.');
@@ -283,7 +278,6 @@ function fmt(int $n): string
   <link rel="stylesheet" href="../styless/beranda.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <style>
-    /* ===== Layout diagram statistik (tambahan, tidak mengubah beranda.css) ===== */
     .chart-group-title {
       font-size: 0.95rem;
       font-weight: 600;
@@ -350,6 +344,128 @@ function fmt(int $n): string
       margin-top: 0.8rem;
       color: #0f4c3a;
     }
+    .nav-toggle-mobile {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 1.6rem;
+      line-height: 1;
+      cursor: pointer;
+      color: inherit;
+      padding: 0.2rem 0.4rem;
+    }
+
+    header nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+    }
+    @media (max-width: 768px) {
+      .nav-toggle-mobile {
+        display: block;
+      }
+
+      header nav ul {
+        display: none;
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.3rem;
+        margin-top: 0.8rem;
+        list-style: none;
+      }
+
+      header nav ul.open {
+        display: flex;
+      }
+
+      header nav ul li a {
+        display: block;
+        text-align: center;
+        padding: 0.7rem;
+      }
+
+      .hero-content h2 {
+        font-size: 1.35rem;
+        line-height: 1.35;
+      }
+
+      .hero-content p {
+        font-size: 0.9rem;
+      }
+
+      .about {
+        grid-template-columns: 1fr;
+      }
+
+      .about iframe {
+        min-height: 240px;
+      }
+
+      .section-title h3 {
+        font-size: 1.2rem;
+      }
+
+      .cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+      }
+
+      .card {
+        padding: 1rem;
+      }
+
+      .chart-group-title {
+        margin: 1.6rem 0 0.8rem;
+        font-size: 0.88rem;
+      }
+
+      .chart-grid {
+        gap: 1rem;
+      }
+
+      .chart-card {
+        padding: 1rem;
+      }
+
+      .chart-card .canvas-wrap {
+        height: 220px;
+      }
+
+      .chart-card.full .canvas-wrap {
+        height: 260px;
+      }
+
+      .chart-card.full .canvas-wrap.tall {
+        height: 320px;
+      }
+
+      footer {
+        text-align: center;
+        padding: 1.2rem 1rem;
+        font-size: 0.85rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .cards {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.6rem;
+      }
+
+      .card h4 {
+        font-size: 0.8rem;
+      }
+
+      .card p strong {
+        font-size: 0.95rem;
+      }
+
+      .chart-card h4 {
+        font-size: 0.85rem;
+      }
+    }
   </style>
 </head>
 
@@ -361,7 +477,8 @@ function fmt(int $n): string
         <img src="../assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam">
         <h1>Desa Teluk Dalam</h1>
       </div>
-      <ul>
+      <button class="nav-toggle-mobile" id="navToggleBeranda" aria-label="Buka menu" type="button">&#9776;</button>
+      <ul id="navMenuBeranda">
         <li><a href="#">Beranda</a></li>
         <li><a href="#profil">Profil Desa</a></li>
         <li><a href="#statistik">Statistik Desa</a></li>
@@ -432,8 +549,6 @@ function fmt(int $n): string
         <p><strong><?= fmt($total_tidak_tetap) ?> Jiwa</strong></p>
       </div>
     </div>
-
-    <!-- Kelompok 1: Gambaran umum penduduk -->
     <div class="chart-group-title">Gambaran Umum Penduduk</div>
     <div class="chart-grid">
       <div class="chart-card">
@@ -450,8 +565,6 @@ function fmt(int $n): string
         </div>
       </div>
     </div>
-
-    <!-- Kelompok 2: Struktur usia (diagram utama, dapat baris penuh sendiri) -->
     <div class="chart-group-title">Struktur Usia Penduduk</div>
     <div class="chart-grid">
       <div class="chart-card full">
@@ -461,8 +574,6 @@ function fmt(int $n): string
         </div>
       </div>
     </div>
-
-    <!-- Kelompok 3: Sosial & ekonomi -->
     <div class="chart-group-title">Kondisi Sosial &amp; Ekonomi</div>
     <div class="chart-grid">
       <div class="chart-card">
@@ -518,6 +629,17 @@ function fmt(int $n): string
   </footer>
 
   <script>
+    const navToggleBeranda = document.getElementById('navToggleBeranda');
+    const navMenuBeranda = document.getElementById('navMenuBeranda');
+    navToggleBeranda.addEventListener('click', function() {
+      navMenuBeranda.classList.toggle('open');
+    });
+    navMenuBeranda.querySelectorAll('a').forEach(function(link) {
+      link.addEventListener('click', function() {
+        navMenuBeranda.classList.remove('open');
+      });
+    });
+
     const genderLabels = <?= json_encode($gender_labels, JSON_UNESCAPED_UNICODE) ?>;
     const genderData = <?= json_encode($gender_data) ?>;
     const statusLabels = <?= json_encode($status_labels, JSON_UNESCAPED_UNICODE) ?>;
@@ -727,7 +849,7 @@ function fmt(int $n): string
             }
           },
           y: {
-            reverse: true, // <-- membalik urutan: kelompok termuda di BAWAH, tertua di ATAS
+            reverse: true,
             ticks: {
               color: '#898781'
             },

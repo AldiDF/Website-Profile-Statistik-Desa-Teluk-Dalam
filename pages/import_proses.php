@@ -52,8 +52,6 @@ function bersihkan(string $v): string
 
 function tentukan_kelengkapan(array $d, bool $kkTidakLengkap = false): string
 {
-    // Kalau No. KK keluarga ini sendiri sudah tidak standar (bukan 16 digit),
-    // semua anggotanya otomatis TIDAK LENGKAP, apa pun isian field lainnya.
     if ($kkTidakLengkap) {
         return 'TIDAK LENGKAP';
     }
@@ -75,9 +73,6 @@ function tentukan_kelengkapan(array $d, bool $kkTidakLengkap = false): string
             return 'TIDAK LENGKAP';
         }
     }
-
-    // NIK sudah pasti terisi di titik ini (lolos pengecekan empty() di atas),
-    // tapi panjangnya harus TEPAT 16 digit supaya dianggap lengkap.
     if (strlen((string) $d['nik']) !== 16) {
         return 'TIDAK LENGKAP';
     }
@@ -225,7 +220,6 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
                     $ringkasan['anggota_dilewati']++;
                     continue;
                 }
-
                 $stmt = edit_data_penduduk(
                     $conn,
                     $dataBaru['nik'],

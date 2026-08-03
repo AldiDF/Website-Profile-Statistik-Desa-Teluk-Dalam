@@ -5,10 +5,6 @@ require "../databases/connection.php";
 $conn = $conn ?? null;
 
 $error = "";
-
-// ==========================
-// PROTEKSI BRUTE-FORCE
-// ==========================
 if (!isset($_SESSION['login_attempts'])) {
     $_SESSION['login_attempts'] = 0;
     $_SESSION['last_attempt_time'] = time();
@@ -30,18 +26,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$locked_out) {
     } elseif (!($conn instanceof mysqli)) {
         $error = "Koneksi database gagal.";
     } else {
-        // Ambil data admin dari database berdasarkan username
         $stmt = mysqli_prepare($conn, "SELECT id, username, password FROM admin WHERE username = ?");
         mysqli_stmt_bind_param($stmt, "s", $username);
         mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
         $row = mysqli_fetch_assoc($result);
         mysqli_stmt_close($stmt);
-
-        // Verifikasi password menggunakan hash (BUKAN perbandingan string biasa)
         if ($row && password_verify($password, $row['password'])) {
-
-            // Regenerasi session ID -> cegah session fixation
             session_regenerate_id(true);
 
             $_SESSION['admin_id']       = $row['id'];
@@ -50,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$locked_out) {
             $_SESSION['ip_address']     = $_SERVER['REMOTE_ADDR'];
             $_SESSION['user_agent']     = $_SERVER['HTTP_USER_AGENT'];
 
-            unset($_SESSION['login_attempts']); // reset percobaan gagal
+            unset($_SESSION['login_attempts']); 
 
             header("Location: dashboard.php");
             exit;

@@ -209,12 +209,16 @@ function hitung_umur($tanggal_lahir)
             justify-content: space-between;
             align-items: center;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+            position: relative;
+            flex-wrap: wrap;
+            gap: 0.5rem;
         }
 
         .navbar .brand {
             display: flex;
             align-items: center;
             gap: 0.7rem;
+            min-width: 0;
         }
 
         .navbar .brand img {
@@ -222,11 +226,23 @@ function hitung_umur($tanggal_lahir)
             height: 40px;
             border-radius: 50%;
             display: block;
+            flex-shrink: 0;
         }
 
         .navbar h1 {
             font-size: 1.15rem;
             font-weight: 600;
+        }
+
+        .navbar .nav-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.2rem 0.5rem;
+            line-height: 1;
         }
 
         .navbar .nav-menu {
@@ -270,6 +286,7 @@ function hitung_umur($tanggal_lahir)
             padding: 0.4rem 0.9rem;
             border-radius: 20px;
             border: 1px solid rgba(244, 180, 0, 0.4);
+            white-space: nowrap;
         }
 
         .container {
@@ -529,12 +546,163 @@ function hitung_umur($tanggal_lahir)
             margin-right: 0.4rem;
         }
 
+        .table-actions {
+            display: flex;
+            gap: 0.6rem;
+            align-items: center;
+        }
+
+        .btn-import {
+            border: 1px solid var(--hijau-tua);
+            padding: 0.5rem 0.9rem;
+            border-radius: 8px;
+            white-space: nowrap;
+        }
+
         .btn:hover {
             text-decoration: underline;
         }
 
         a.btn[href^="delete_data"] {
             color: #b91c1c;
+        }
+
+        /* =====================================================
+           RESPONSIVE - MOBILE
+           Catatan: khusus TABEL data, kita TIDAK membuatnya jadi
+           "stack/card" di mobile. Tabel tetap dalam bentuk tabel
+           dan cukup discroll secara horizontal (lihat .table-wrapper
+           di atas: overflow-x:auto + table min-width). Yang dibuat
+           responsive di sini adalah elemen di LUAR tabel (navbar,
+           statistik, filter, search, tombol, dsb).
+        ===================================================== */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0.8rem 1rem;
+            }
+
+            .navbar h1 {
+                font-size: 1rem;
+            }
+
+            .navbar .nav-toggle {
+                display: block;
+            }
+
+            .navbar .nav-menu {
+                display: none;
+                width: 100%;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.3rem;
+                order: 3;
+            }
+
+            .navbar .nav-menu.open {
+                display: flex;
+            }
+
+            .navbar .nav-menu a {
+                text-align: center;
+                padding: 0.7rem;
+            }
+
+            .navbar .nav-right {
+                order: 2;
+            }
+
+            .container {
+                padding: 1rem 0.85rem;
+            }
+
+            /* Statistik: 2 kolom di tablet/mobile besar */
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.7rem;
+            }
+
+            .stat-card {
+                padding: 0.9rem 1rem;
+            }
+
+            .stat-card .label {
+                font-size: 0.75rem;
+            }
+
+            .stat-card .value {
+                font-size: 1.4rem;
+            }
+
+            .table-card {
+                padding: 1rem 0.85rem;
+                border-radius: 10px;
+            }
+
+            .table-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .table-header h2 {
+                font-size: 1rem;
+            }
+
+            /* Aksi tabel (search + tombol) ditumpuk penuh selebar layar */
+            .table-actions {
+                flex-direction: column;
+                align-items: stretch;
+                width: 100%;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+            .btn-import,
+            .btn-tambah {
+                width: 100%;
+                text-align: center;
+                justify-content: center;
+                margin-right: 0;
+            }
+
+            /* Filter RT & Status: tombol lebih ringkas & tetap bisa wrap */
+            .rt-filter {
+                gap: 0.4rem;
+                margin-bottom: 1rem;
+            }
+
+            .rt-filter a {
+                padding: 0.45rem 0.85rem;
+                font-size: 0.78rem;
+            }
+
+            /* Hanya area tabel yang discroll horizontal, bukan seluruh halaman */
+            .table-wrapper {
+                -webkit-overflow-scrolling: touch;
+                margin: 0 -0.85rem;
+                padding: 0 0.85rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.6rem;
+            }
+
+            .stat-card .value {
+                font-size: 1.25rem;
+            }
+
+            .navbar h1 {
+                font-size: 0.9rem;
+            }
+
+            .navbar .brand img {
+                width: 30px;
+                height: 34px;
+            }
         }
     </style>
 </head>
@@ -546,12 +714,16 @@ function hitung_umur($tanggal_lahir)
             <img src="../assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam">
             <h1>Dashboard Admin - Kependudukan Teluk Dalam</h1>
         </div>
-        <div class="nav-menu">
-            <a href="dashboard.php" class="active">Data Penduduk</a>
-            <a href="../databases/logout.php">Keluar</a>
-        </div>
+
+        <button class="nav-toggle" id="navToggle" aria-label="Buka menu" type="button">&#9776;</button>
+
         <div class="nav-right">
             <span class="halo">Halo, Admin</span>
+        </div>
+
+        <div class="nav-menu" id="navMenu">
+            <a href="dashboard.php" class="active">Data Penduduk</a>
+            <a href="../databases/logout.php">Keluar</a>
         </div>
     </nav>
 
@@ -616,14 +788,12 @@ function hitung_umur($tanggal_lahir)
                 Data Tidak Lengkap
             </a>
         </div>
-
-        <!-- TABEL DATA -->
         <div class="table-card">
             <div class="table-header">
                 <h2>Data Kependudukan<?= $rt_filter !== "" ? " - RT $rt_filter" : "" ?><?= $status_penduduk_filter !== "" ? " - " . ($status_penduduk_filter === "PERMANEN" ? "Penduduk Tetap" : "Penduduk Tidak Tetap") : "" ?></h2>
-                <div style="display:flex; gap:0.6rem; align-items:center;">
+                <div class="table-actions">
                     <input type="text" id="searchInput" class="search-box" placeholder="Cari NIK, nama, alamat, dll...">
-                    <a href="import_massal.php" class="btn" style="border:1px solid var(--hijau-tua); padding:0.5rem 0.9rem; border-radius:8px;">📥 Import Massal</a>
+                    <a href="import_massal.php" class="btn btn-import">📥 Import Massal</a>
                     <a href="data_detail.php" class="btn-tambah">+ Tambah Data</a>
                 </div>
             </div>
@@ -725,6 +895,11 @@ function hitung_umur($tanggal_lahir)
             });
 
             noResult.style.display = visibleCount === 0 ? 'block' : 'none';
+        });
+        const navToggle = document.getElementById('navToggle');
+        const navMenu = document.getElementById('navMenu');
+        navToggle.addEventListener('click', function() {
+            navMenu.classList.toggle('open');
         });
     </script>
 

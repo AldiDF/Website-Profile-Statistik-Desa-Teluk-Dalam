@@ -7,7 +7,6 @@ include '../databases/data_input.php';
 if (!isset($conn)) {
     die("Koneksi database tidak tersedia.");
 }
-
 $mode = "tambah";
 $title_page = "Tambah Data Keluarga";
 $error = "";
@@ -18,7 +17,6 @@ $keluarga = [
     "rt"              => "",
     "alamat_domisili" => "",
 ];
-
 $anggota_kosong = [
     "id_penduduk"         => "",
     "nik"                 => "",
@@ -33,7 +31,6 @@ $anggota_kosong = [
     "status_penduduk"     => "PERMANEN",
     "hubungan_keluarga"   => "",
 ];
-
 $anggota_list = [];
 $original_ids = "";
 if (isset($_GET['id_keluarga']) && is_numeric($_GET['id_keluarga'])) {
@@ -63,8 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status_penduduks   = bersihkan_input_array($_POST['status_penduduk'] ?? []);
     $hubungans          = bersihkan_input_array($_POST['hubungan_keluarga'] ?? []);
     $id_penduduks       = bersihkan_input_array($_POST['id_penduduk'] ?? []);
-
-    // Susun ulang $anggota_list supaya kalau ada error, form tetap terisi
     foreach ($niks as $i => $v) {
         $anggota_list[] = [
             "id_penduduk"         => $id_penduduks[$i] ?? '',
@@ -132,8 +127,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     mysqli_stmt_close($stmtKeluarga);
                 }
-
-                // Hapus anggota yang sudah tidak ada di form (dihapus lewat tombol Hapus)
                 $original_id_arr  = array_filter(array_map('trim', explode(',', $original_ids)));
                 $submitted_id_arr = array_filter(array_map('trim', $id_penduduks));
                 $to_delete        = array_diff($original_id_arr, $submitted_id_arr);
@@ -181,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     if (!$ada_perubahan) {
-                        continue; // tidak ada perubahan -> skip, lanjut ke anggota berikutnya
+                        continue;
                     }
 
                     $stmtAnggota = edit_data_penduduk(
@@ -751,22 +744,13 @@ function render_anggota_block($a, $nomor)
 
                 <div class="card">
                     <p class="section-title">Anggota Keluarga</p>
-
-                    <div style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap; margin-bottom:1rem;">
-                        <input type="file" id="importExcelInput" accept=".xlsx,.xls" style="display:none;">
-                        <button type="button" class="btn-tambah-anggota" id="btnImportExcel">📥 Import dari Excel</button>
-                        <span id="importStatus" style="font-size:0.82rem; color:#898781;"></span>
-                    </div>
-
                     <div id="anggotaContainer">
                         <?php foreach ($anggota_list as $i => $a): ?>
                             <?= render_anggota_block($a, $i + 1) ?>
                         <?php endforeach; ?>
                     </div>
-
                     <button type="button" class="btn-tambah-anggota" id="btnTambahAnggota">+ Tambah Anggota Keluarga</button>
                 </div>
-
                 <div class="form-footer">
                     <?php if ($mode === 'edit'): ?>
                         <a href="delete.php?id_keluarga=<?= htmlspecialchars((string) $id_keluarga) ?>"
@@ -781,22 +765,10 @@ function render_anggota_block($a, $nomor)
                     </button>
                 </div>
             </form>
-
         </div>
     </div>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        // ==========================
-        // IMPORT DARI EXCEL (format standar Data Keluarga)
-        // ==========================
-        // ==========================
-        // FUZZY MATCHING (jarak Levenshtein)
-        // Lapisan cadangan untuk menangkap typo yang BELUM terdaftar di dictionary manual,
-        // mis. "Katholik" (tidak ada di daftar) tetap bisa ke-koreksi ke "KATOLIK" karena
-        // jaraknya cukup dekat. Dijalankan HANYA kalau dictionary tidak menemukan kecocokan
-        // persis, supaya hasil yang sudah pasti benar tidak ikut "ditebak-tebak" ulang.
-        // ==========================
         function levenshtein(a, b) {
             const m = a.length,
                 n = b.length;
@@ -811,20 +783,14 @@ function render_anggota_block($a, $nomor)
                 for (let j = 1; j <= n; j++) {
                     const cost = a[i - 1] === b[j - 1] ? 0 : 1;
                     dp[i][j] = Math.min(
-                        dp[i - 1][j] + 1, // hapus 1 huruf
-                        dp[i][j - 1] + 1, // tambah 1 huruf
-                        dp[i - 1][j - 1] + cost // ganti 1 huruf
+                        dp[i - 1][j] + 1, 
+                        dp[i][j - 1] + 1, 
+                        dp[i - 1][j - 1] + cost 
                     );
                 }
             }
             return dp[m][n];
         }
-
-        // Cari kandidat dalam `daftarKandidat` yang jaraknya paling dekat dengan `teks`.
-        // Ambang batas dibuat proporsional terhadap panjang teks (bukan angka tetap),
-        // supaya kata pendek (mis. "L", "SD") tidak terlalu longgar dikoreksi,
-        // sementara kata panjang (mis. "DIPLOMA/SEDERAJAT") tetap bisa menoleransi
-        // beberapa huruf yang typo.
         function cariTerdekat(teks, daftarKandidat, ambangRasio = 0.3) {
             let terbaik = null;
             let jarakTerbaik = Infinity;
@@ -838,34 +804,25 @@ function render_anggota_block($a, $nomor)
             }
             return terbaik;
         }
-
-        // Opsi baku "pendidikan_terakhir" di form. Diploma I/II/III digabung jadi satu kategori
-        // karena data sumber (Excel Dukcapil) sering hanya menulis "DIPLOMA/SEDERAJAT" tanpa
-        // menyebutkan jenjang I/II/III secara spesifik, sehingga tidak bisa dibedakan otomatis.
         const MAP_PENDIDIKAN = {
             'TIDAK SEKOLAH': 'TIDAK SEKOLAH',
             'BELUM SEKOLAH': 'TIDAK SEKOLAH',
             'BELUM/TIDAK SEKOLAH': 'TIDAK SEKOLAH',
             'TIDAK/BELUM SEKOLAH': 'TIDAK SEKOLAH',
-
             'SD/SEDERAJAT': 'SD/SEDERAJAT',
             'SD': 'SD/SEDERAJAT',
             'SEDERAJAT SD': 'SD/SEDERAJAT',
             'TAMAT SD/SEDERAJAT': 'SD/SEDERAJAT',
-
             'SLTP/SEDERAJAT': 'SLTP/SEDERAJAT',
             'SMP/SEDERAJAT': 'SLTP/SEDERAJAT',
             'SLTP': 'SLTP/SEDERAJAT',
             'SMP': 'SLTP/SEDERAJAT',
-
             'SLTA/SEDERAJAT': 'SLTA/SEDERAJAT',
             'SMA/SEDERAJAT': 'SLTA/SEDERAJAT',
             'SLTA': 'SLTA/SEDERAJAT',
             'SMA': 'SLTA/SEDERAJAT',
             'SMK/SEDERAJAT': 'SLTA/SEDERAJAT',
             'SMK': 'SLTA/SEDERAJAT',
-
-
             'DIPLOMA I/II/III': 'DIPLOMA I/II/III',
             'DIPLOMA/SEDERAJAT': 'DIPLOMA I/II/III',
             'DIPLOMA': 'DIPLOMA I/II/III',
@@ -890,13 +847,11 @@ function render_anggota_block($a, $nomor)
             'S1': 'DIPLOMA IV/STRATA I',
             'STRATA I': 'DIPLOMA IV/STRATA I',
             'STRATA I/SEDERAJAT': 'DIPLOMA IV/STRATA I',
-
             'S2/SEDERAJAT': 'STRATA II',
             'S2': 'STRATA II',
             'STRATA II': 'STRATA II',
             'STRATA II/SEDERAJAT': 'STRATA II',
             'MAGISTER': 'STRATA II',
-
             'S3/SEDERAJAT': 'STRATA III',
             'S3': 'STRATA III',
             'STRATA III': 'STRATA III',
@@ -904,7 +859,6 @@ function render_anggota_block($a, $nomor)
             'DOKTOR': 'STRATA III',
         };
         const DAFTAR_KEY_PENDIDIKAN = Object.keys(MAP_PENDIDIKAN);
-
         function normalisasiPendidikan(v) {
             if (!v) return '';
             const key = v.toString().trim().toUpperCase().replace(/\s*\/\s*/g, '/').replace(/\s+/g, ' ');
@@ -914,12 +868,11 @@ function render_anggota_block($a, $nomor)
             return key;
         }
         const JENIS_KELAMIN_FUZZY = ['LAKI-LAKI', 'LAKI LAKI', 'PEREMPUAN', 'WANITA', 'PRIA'];
-
         function normalisasiJenisKelamin(v) {
             if (!v) return '';
             const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
             if (key === 'L' || key === 'LK' || key === 'LAKI2' || /^LAKI[\s-]*LAKI$/.test(key)) {
-                return 'LAKI-LAKI'; // menambahkan strip kalau sebelumnya tertulis "LAKI LAKI"/"LAKI2"/dll
+                return 'LAKI-LAKI';
             }
             if (key === 'P' || key === 'PR' || key === 'WANITA' || key === 'PEREMPUAN') {
                 return 'PEREMPUAN';
@@ -934,22 +887,17 @@ function render_anggota_block($a, $nomor)
         const MAP_AGAMA = {
             'ISLAM': 'ISLAM',
             'MUSLIM': 'ISLAM',
-
             'KRISTEN': 'KRISTEN',
             'KRISTEN PROTESTAN': 'KRISTEN',
             'PROTESTAN': 'KRISTEN',
-
             'KATOLIK': 'KATOLIK',
             'KATHOLIK': 'KATOLIK',
             'KATOLIK ROMA': 'KATOLIK',
-
             'HINDU': 'HINDU',
             'HINDHU': 'HINDU',
-
             'BUDDHA': 'BUDDHA',
             'BUDHA': 'BUDDHA',
             'BUDHHA': 'BUDDHA',
-
             'KONGHUCU': 'KONGHUCU',
             'KHONGHUCU': 'KONGHUCU',
             'CONGHUCU': 'KONGHUCU',
@@ -1062,10 +1010,7 @@ function render_anggota_block($a, $nomor)
                 alamat = '';
             let headerRowIdx = -1;
             let nomorKKRowIdx = -1;
-            // Kumpulkan semua header "PERIODE ... ( PENDUDUK PERMANEN/NON PERMANEN)" beserta posisi barisnya.
-            // File bisa berisi lebih dari satu blok header, jadi statusnya nanti diambil dari header
-            // TERDEKAT SEBELUM baris "No. KK" yang terbaca, bukan header terakhir di seluruh file.
-            const statusHeaderList = []; // { rowIndex, status }
+            const statusHeaderList = [];
 
             for (let i = 0; i < rows.length; i++) {
                 const row = rows[i];
@@ -1106,8 +1051,6 @@ function render_anggota_block($a, $nomor)
                     });
                 }
             }
-
-            // Ambil status dari header PERIODE terdekat SEBELUM baris "No. KK" yang terbaca
             let statusPendudukHeader = 'PERMANEN';
             const acuanBaris = nomorKKRowIdx > -1 ? nomorKKRowIdx : rows.length;
             for (const h of statusHeaderList) {

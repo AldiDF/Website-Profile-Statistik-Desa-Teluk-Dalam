@@ -268,13 +268,6 @@ if (!isset($conn)) {
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        // ==========================
-        // FUZZY MATCHING (jarak Levenshtein)
-        // Lapisan cadangan untuk menangkap typo yang BELUM terdaftar di dictionary manual,
-        // mis. "Katholik" (tidak ada di daftar) tetap bisa ke-koreksi ke "KATOLIK" karena
-        // jaraknya cukup dekat. Dijalankan HANYA kalau dictionary tidak menemukan kecocokan
-        // persis, supaya hasil yang sudah pasti benar tidak ikut "ditebak-tebak" ulang.
-        // ==========================
         function levenshtein(a, b) {
             const m = a.length,
                 n = b.length;
@@ -289,9 +282,9 @@ if (!isset($conn)) {
                 for (let j = 1; j <= n; j++) {
                     const cost = a[i - 1] === b[j - 1] ? 0 : 1;
                     dp[i][j] = Math.min(
-                        dp[i - 1][j] + 1, // hapus 1 huruf
-                        dp[i][j - 1] + 1, // tambah 1 huruf
-                        dp[i - 1][j - 1] + cost // ganti 1 huruf
+                        dp[i - 1][j] + 1,
+                        dp[i][j - 1] + 1, 
+                        dp[i - 1][j - 1] + cost 
                     );
                 }
             }
@@ -322,20 +315,17 @@ if (!isset($conn)) {
             '': 'TIDAK SEKOLAH',
             'BELUM TAMATSD/SEDERAJAT': 'TIDAK SEKOLAH',
             'BELUM/TIDAK TURUN' : 'TIDAK SEKOLAH',
-
             'TK': 'PAUD/TK',
             'PAUD': 'PAUD/TK',
             'PAUD/TK': 'PAUD/TK',
             'PAUD/TK SEDERAJAT' : 'PAUD/TK',
             'PELAJAR TK/SEDERAJAT' : 'PAUD/TK',
-
             'SD/SEDERAJAT': 'SD/SEDERAJAT',
             'SD': 'SD/SEDERAJAT',
             'Tk/SD' : 'SD/SEDERAJAT',
             'SEDERAJAT SD': 'SD/SEDERAJAT',
             'TAMAT SD/SEDERAJAT': 'SD/SEDERAJAT',
             'PELAJAR/SD' : 'SD/SEDERAJAT',
-
             'SLTP/SEDERAJAT': 'SLTP/SEDERAJAT',
             'SMP/SEDERAJAT': 'SLTP/SEDERAJAT',
             'SLTP': 'SLTP/SEDERAJAT',
@@ -373,14 +363,12 @@ if (!isset($conn)) {
             'STRATA I': 'DIPLOMA IV/STRATA I',
             'STRATA I/SEDERAJAT': 'DIPLOMA IV/STRATA I',
             'SARJANA (S1)': 'DIPLOMA IV/STRATA I',
-
             'S2/SEDERAJAT': 'STRATA II',
             'S2': 'STRATA II',
             'STRATA II': 'STRATA II',
             'STRATA II/SEDERAJAT': 'STRATA II',
             'MAGISTER': 'STRATA II',
             'MAGISTER (S2)': 'STRATA II',
-
             'S3/SEDERAJAT': 'STRATA III',
             'S3': 'STRATA III',
             'STRATA III': 'STRATA III',
@@ -392,13 +380,11 @@ if (!isset($conn)) {
 
         function normalisasiPendidikan(v) {
             if (!v) return '';
-            // Rapikan spasi ganda/tidak rapi sebelum dicocokkan, mis. "S1 / SEDERAJAT" -> "S1/SEDERAJAT"
             const key = v.toString().trim().toUpperCase().replace(/\s*\/\s*/g, '/').replace(/\s+/g, ' ');
             if (MAP_PENDIDIKAN[key]) return MAP_PENDIDIKAN[key];
-            // Tidak ketemu persis -> coba cari istilah yang mirip (typo), mis. "DIPOLMA/SEDERAJAT"
             const cocokFuzzy = cariTerdekat(key, DAFTAR_KEY_PENDIDIKAN);
             if (cocokFuzzy) return MAP_PENDIDIKAN[cocokFuzzy];
-            return key; // tidak ada yang cukup mirip -> biarkan apa adanya, perlu dicek manual
+            return key; 
         }
 
         const JENIS_KELAMIN_FUZZY = ['LAKI-LAKI', 'LAKI LAKI', 'PEREMPUAN', 'WANITA', 'PRIA'];
@@ -407,7 +393,7 @@ if (!isset($conn)) {
             if (!v) return '';
             const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
             if (key === 'L' || key === 'LK' || key === 'LAKI2' || /^LAKI[\s-]*LAKI$/.test(key)) {
-                return 'LAKI-LAKI'; // menambahkan strip kalau sebelumnya tertulis "LAKI LAKI"/"LAKI2"/dll
+                return 'LAKI-LAKI'; 
             }
             if (key === 'P' || key === 'PR' || key === 'WANITA' || key === 'PEREMPUAN') {
                 return 'PEREMPUAN';
@@ -422,28 +408,22 @@ if (!isset($conn)) {
         const MAP_AGAMA = {
             'ISLAM': 'ISLAM',
             'MUSLIM': 'ISLAM',
-
             'KRISTEN': 'KRISTEN',
             'KRISTEN PROTESTAN': 'KRISTEN',
             'PROTESTAN': 'KRISTEN',
-
             'KATOLIK': 'KATOLIK',
             'KATHOLIK': 'KATOLIK',
             'KATOLIK ROMA': 'KATOLIK',
-
             'HINDU': 'HINDU',
             'HINDHU': 'HINDU',
-
             'BUDDHA': 'BUDDHA',
             'BUDHA': 'BUDDHA',
             'BUDHHA': 'BUDDHA',
-
             'KONGHUCU': 'KONGHUCU',
             'KHONGHUCU': 'KONGHUCU',
             'CONGHUCU': 'KONGHUCU',
         };
         const DAFTAR_KEY_AGAMA = Object.keys(MAP_AGAMA);
-
         function normalisasiAgama(v) {
             if (!v) return '';
             const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
@@ -456,7 +436,6 @@ if (!isset($conn)) {
             'KEPALA KELUARGA', 'SUAMI', 'ISTRI', 'ANAK', 'CUCU',
             'ORANG TUA', 'MERTUA', 'MENANTU', 'SAUDARA', 'FAMILI LAIN',
         ];
-
         const MAP_HUBUNGAN = {
             'ORANGTUA': 'ORANG TUA',
             'ORANG TUA/MERTUA': 'ORANG TUA',
@@ -471,35 +450,24 @@ if (!isset($conn)) {
             if (cocokFuzzy) return cocokFuzzy;
             return 'FAMILI LAIN';
         }
-
-        // Ekstraksi alamat & RT dari teks bebas, menangani BEBERAPA format sekaligus:
-        // Format 1: "ALAMAT : xxx, NAMA DUSUN : -, RT/RW : 001/- NO RUMAH ..."
-        // Format 2: "ALAMAT : xxx RT. 01"  (tanpa label "NAMA DUSUN"/"RT/RW")
         function ekstrakAlamat(cellC) {
             const teks = cellC.toString();
-
-            // Ambil semua teks setelah "ALAMAT :" sebagai bahan mentah
             const mMentah = teks.match(/ALAMAT\s*:\s*(.*)/i);
             const sisaTeks = mMentah ? mMentah[1] : '';
-
-            // Potong di penanda pertama yang ditemukan, supaya alamat tetap bersih
             let alamat = sisaTeks
-                .split(/,\s*NAMA DUSUN/i)[0] // buang ", Nama Dusun : ..." kalau ada
-                .split(/,?\s*RT\/RW/i)[0] // buang ", RT/RW : ..." kalau ada
-                .replace(/,?\s*RT\.?\s*\d{1,3}\s*$/i, '') // buang "RT. 01" kalau nempel di akhir kalimat
+                .split(/,\s*NAMA DUSUN/i)[0] 
+                .split(/,?\s*RT\/RW/i)[0] 
+                .replace(/,?\s*RT\.?\s*\d{1,3}\s*$/i, '') 
                 .trim();
 
             return alamat;
         }
 
         function ekstrakRTdariNamaFile(namaFile) {
-            // Buang ekstensi (.xlsx/.xls) dulu supaya tidak ikut ke-scan
             const namaBersih = namaFile.replace(/\.(xlsx|xls)$/i, '');
-
-            // Cocok untuk: "RT1", "RT 1", "RT 01", "RT 001", "rt1", "rt 1", "RT.1", dst
             const m = namaBersih.match(/RT\s*\.?\s*(\d{1,3})/i);
             if (m) {
-                return m[1].padStart(3, '0'); // hasil selalu 3 digit: "001", "010", "100"
+                return m[1].padStart(3, '0'); 
             }
             return '';
         }
@@ -587,17 +555,11 @@ if (!isset($conn)) {
         }
 
         function parseSemuaKK(rows, rtDariFile) {
-            const statusHeaderList = []; // { rowIndex, status }
+            const statusHeaderList = []; 
             for (let i = 0; i < rows.length; i++) {
-                // Gabungkan semua sel di baris ini jadi 1 teks, supaya tidak bergantung
-                // pada posisi kolom pasti (kadang teks "BUKU INDUK PENDUDUK WNI (PERMANEN)"
-                // ada di kolom A, kadang gabungan sel lain karena merge cell di Excel).
                 const barisTeks = (rows[i] || []).map(c => (c || '').toString()).join(' ').toUpperCase();
-
                 if (barisTeks.includes('BUKU INDUK PENDUDUK WNI')) {
                     let status = null;
-                    // Cek "NON PERMANEN" LEBIH DULU, karena kata "PERMANEN" juga
-                    // otomatis ikut ketemu di dalam teks "NON PERMANEN" kalau dicek terbalik.
                     if (/NON\s*PERMANEN/i.test(barisTeks)) {
                         status = 'NON PERMANEN';
                     } else if (/\bPERMANEN\b/i.test(barisTeks)) {
@@ -644,10 +606,6 @@ if (!isset($conn)) {
                 for (let i = startIdx + 1; i < endIdx; i++) {
                     const row = rows[i];
                     const cellKolomKK = (row[0] || '').toString().trim();
-
-                    // Penanda akhir tabel: kolom "No. KK" cuma berisi dash ('-', '--', '---', dst)
-                    // -> berhenti membaca anggota untuk KK ini, apa pun yang ada di baris-baris setelahnya
-                    //    sampai KK berikutnya (entah masih sisa sampah transisi atau sudah masuk tabel 2) diabaikan.
                     if (/^-+$/.test(cellKolomKK)) {
                         break;
                     }
@@ -701,13 +659,12 @@ if (!isset($conn)) {
         }
 
         function deteksiNikDuplikatLintasKK(daftarKeluarga) {
-            // Kumpulkan semua NIK yang muncul, simpan di KK mana saja dia terlihat
-            const petaNik = {}; // { nik: [ {nomor_kk, nama, hubungan}, ... ] }
+            const petaNik = {}; 
 
             daftarKeluarga.forEach(k => {
                 k.anggota.forEach(a => {
                     const nik = (a.nik || '').trim();
-                    if (nik === '') return; // NIK kosong tidak bisa dibandingkan, lewati
+                    if (nik === '') return; 
 
                     if (!petaNik[nik]) petaNik[nik] = [];
                     petaNik[nik].push({
@@ -717,8 +674,6 @@ if (!isset($conn)) {
                     });
                 });
             });
-
-            // Ambil NIK yang muncul di LEBIH DARI 1 KK yang BERBEDA
             const duplikat = [];
             for (const nik in petaNik) {
                 const kkUnik = [...new Set(petaNik[nik].map(x => x.nomor_kk))];
@@ -748,11 +703,8 @@ if (!isset($conn)) {
                 '</tr></thead><tbody>';
             daftarKeluarga.forEach((k, idx) => {
                 totalAnggota += k.anggota.length;
-                // Status penduduk diambil dari anggota pertama, karena satu KK selalu
-                // berasal dari 1 blok tabel yang sama (semua anggotanya pasti sama statusnya)
                 const statusKK = k.anggota.length > 0 ? k.anggota[0].status_penduduk : '-';
                 const badgeClass = statusKK === 'NON PERMANEN' ? 'status-non-permanen' : 'status-permanen';
-
                 html += `<tr>
         <td>${idx + 1}.</td>
         <td>${k.nomor_kk}</td>
@@ -798,8 +750,6 @@ if (!isset($conn)) {
             const peringatanEnum = adaNilaiMencurigakan ?
                 '<p style="color:#b91c1c; font-size:0.85rem; margin-top:0.6rem;">⚠️ Ada nilai (ditandai merah) yang tidak cocok dengan pilihan resmi di database. Ini kemungkinan besar akan menyebabkan error "Data truncated" saat proses import. Cek dan perbaiki dulu di file Excel sumbernya.</p>' :
                 '';
-
-            // ===== DETEKSI NIK DUPLIKAT LINTAS KK =====
             const nikDuplikat = deteksiNikDuplikatLintasKK(daftarKeluarga);
             let peringatanDuplikat = '';
             if (nikDuplikat.length > 0) {
