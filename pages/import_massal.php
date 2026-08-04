@@ -387,6 +387,80 @@ if (!isset($conn)) {
             return key;
         }
 
+        // ==========================
+        // MAP_PEKERJAAN: menyamakan pekerjaan yang sebenarnya sama tapi ditulis
+        // beda-beda sedikit di Excel (singkatan, typo, sinonim), supaya tidak
+        // dianggap pekerjaan yang berbeda-beda saat direkap/ditampilkan di dashboard.
+        // ==========================
+        const MAP_PEKERJAAN = {
+            'BELUM/TIDAK BEKERJA': 'BELUM/TIDAK BEKERJA',
+            'TIDAK/BELUM BEKERJA': 'BELUM/TIDAK BEKERJA',
+            'TIDAK BEKERJA': 'BELUM/TIDAK BEKERJA',
+            'BELUM BEKERJA': 'BELUM/TIDAK BEKERJA',
+            'TDK/BELUM BEKERJA': 'BELUM/TIDAK BEKERJA',
+            'BLM BEKERJA': 'BELUM/TIDAK BEKERJA',
+            'TIDAK/BLM BEKERJA': 'BELUM/TIDAK BEKERJA',
+            '': 'BELUM/TIDAK BEKERJA',
+
+            'MENGURUS RUMAH TANGGA': 'MENGURUS RUMAH TANGGA',
+            'PENGURUS RUMAH TANGGA': 'MENGURUS RUMAH TANGGA',
+            'IBU RUMAH TANGGA': 'MENGURUS RUMAH TANGGA',
+            'IRT': 'MENGURUS RUMAH TANGGA',
+            'RUMAH TANGGA': 'MENGURUS RUMAH TANGGA',
+
+            'PELAJAR/MAHASISWA': 'PELAJAR/MAHASISWA',
+            'PELAJAR': 'PELAJAR/MAHASISWA',
+            'MAHASISWA': 'PELAJAR/MAHASISWA',
+            'PELAJAR MAHASISWA': 'PELAJAR/MAHASISWA',
+            'SISWA': 'PELAJAR/MAHASISWA',
+            'SISWA/PELAJAR': 'PELAJAR/MAHASISWA',
+            'PELAJAR/SISWA': 'PELAJAR/MAHASISWA',
+
+            'PEGAWAI NEGERI SIPIL': 'PNS',
+            'PNS': 'PNS',
+            'PEGAWAI NEGRI SIPIL': 'PNS',
+            'ASN': 'PNS',
+            'PENSIUNAN PNS': 'PNS',
+            'PNS/ASN': 'PNS',
+            'ASN/PNS': 'PNS',
+            'APARATUR SIPIL NEGARA': 'PNS',
+            'PNS/PERAWAT': 'PNS',
+            'PNS/DOSEN': 'PNS',
+            'PENSINAN PNS': 'PNS',
+            'PNS/TNI': 'PNS',
+            'PENSIUNAN PNS/ASN': 'PNS',
+
+            'WIRASWASTA': 'WIRASWASTA',
+            'WIRASWASTA/UMKM': 'WIRASWASTA',
+            'WIRAUSAHA': 'WIRASWASTA',
+            'WIRA SWASTA': 'WIRASWASTA',
+            'USAHA SENDIRI': 'WIRASWASTA',
+            'PENGUSAHA': 'WIRASWASTA',
+
+            'SWASTA': 'SWASTA',
+            'KARYAWAN SWASTA': 'SWASTA',
+
+            'HONORER': 'HONORER',
+            'HONORER/SAPAM': 'HONORER',
+            'KARYAWAN HONORER': 'HONORER',
+
+            'KARYAWAN HONORER': 'HONORER',
+        };
+        const DAFTAR_KEY_PEKERJAAN = Object.keys(MAP_PEKERJAAN);
+
+        function normalisasiPekerjaan(v) {
+            if (!v) return '';
+            const key = v.toString().trim().toUpperCase().replace(/\s*\/\s*/g, '/').replace(/\s+/g, ' ');
+            if (MAP_PEKERJAAN[key]) return MAP_PEKERJAAN[key];
+            const cocokFuzzy = cariTerdekat(key, DAFTAR_KEY_PEKERJAAN);
+            if (cocokFuzzy) return MAP_PEKERJAAN[cocokFuzzy];
+            // Kalau tidak ada yang cocok sama sekali (pekerjaan unik/spesifik),
+            // tetap dipakai apa adanya (sudah dirapikan ke huruf besar & spasi rapi),
+            // bukan dipaksa masuk kategori lain.
+            return key;
+        }
+
+
         const JENIS_KELAMIN_FUZZY = ['LAKI-LAKI', 'LAKI LAKI', 'PEREMPUAN', 'WANITA', 'PRIA'];
 
         function normalisasiJenisKelamin(v) {
@@ -625,7 +699,7 @@ if (!isset($conn)) {
                         hubungan_keluarga: normalisasiHubungan(row[6]),
                         agama: normalisasiAgama(row[7]),
                         pendidikan_terakhir: normalisasiPendidikan(row[8]),
-                        pekerjaan: (row[9] || '').toString().trim(),
+                        pekerjaan: normalisasiPekerjaan(row[9]),
                         kewarganegaraan: 'WNI',
                         status_penduduk: statusPendudukHeader,
                     });
