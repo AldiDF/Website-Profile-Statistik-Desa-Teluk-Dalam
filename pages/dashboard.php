@@ -1,33 +1,16 @@
 <?php
 require '../databases/auth_check.php';
 require '../databases/connection.php';
+require 'dashboard_helpers.php';
 
 if (!isset($conn)) {
     die("Koneksi database tidak tersedia.");
 }
 
-$rt_filter = "";
-if (isset($_GET['rt']) && $_GET['rt'] !== "") {
-    $rt_digits = preg_replace('/\D/', '', $_GET['rt']);
-    if ($rt_digits !== "") {
-        $rt_filter = $rt_digits;
-    }
-}
-
-$status_penduduk_filter = "";
-$status_penduduk_valid  = ['PERMANEN', 'NON PERMANEN'];
-if (isset($_GET['status_penduduk']) && in_array($_GET['status_penduduk'], $status_penduduk_valid, true)) {
-    $status_penduduk_filter = $_GET['status_penduduk'];
-}
-
-// ==========================
-// FILTER TAMPILAN KHUSUS: MENINGGAL / TIDAK LENGKAP
-// Kalau salah satu aktif, tampilan NORMAL (LENGKAP + PERMANEN/NON PERMANEN) dilewati
-// ==========================
-$tampilan_khusus = "";
-if (isset($_GET['tampilan']) && in_array($_GET['tampilan'], ['meninggal', 'tidak_lengkap'], true)) {
-    $tampilan_khusus = $_GET['tampilan'];
-}
+$filter                 = ambil_filter_dari_get();
+$rt_filter               = $filter['rt'];
+$status_penduduk_filter  = $filter['status_penduduk'];
+$tampilan_khusus         = $filter['tampilan'];
 
 $daftar_rt = [];
 $queryRT = "SELECT DISTINCT CAST(rt AS UNSIGNED) AS rt_num FROM keluarga ORDER BY rt_num ASC";
@@ -39,133 +22,31 @@ if ($resultRT) {
     mysqli_free_result($resultRT);
 }
 
-$data_penduduk = [];
-
-$query = "
-    SELECT
-        p.id_penduduk,
-        p.nik,
-        k.id_keluarga,
-        k.nomor_kk,
-        p.nama_lengkap,
-        p.tempat_lahir,
-        p.tanggal_lahir,
-        p.jenis_kelamin,
-        p.agama,
-        p.pekerjaan,
-        p.pendidikan_terakhir,
-        p.kewarganegaraan,
-        p.status_penduduk,
-        p.status_lengkap,
-        p.hubungan_keluarga,
-        k.rt,
-        k.alamat_domisili
-    FROM penduduk p
-    LEFT JOIN keluarga k ON p.id_keluarga_fk = k.id_keluarga
-";
-// LEFT JOIN (bukan INNER JOIN) supaya baris yang id_keluarga_fk-nya masih NULL
-// (misal hasil import massal yang datanya belum lengkap) tetap ikut tampil,
-// bukan hilang begitu saja dari dashboard.
-
-$where = [];
-
-if ($rt_filter !== "") {
-    $where[] = "CAST(k.rt AS UNSIGNED) = " . (int) $rt_filter;
-}
-
-if ($tampilan_khusus === 'meninggal') {
-    // Tampilkan HANYA yang berstatus MENINGGAL, apa pun status_lengkap-nya
-    $where[] = "p.status_penduduk = 'MENINGGAL'";
-} elseif ($tampilan_khusus === 'tidak_lengkap') {
-    // Tampilkan HANYA data yang belum lengkap, apa pun status_penduduk-nya
-    $where[] = "p.status_lengkap = 'TIDAK LENGKAP'";
-} else {
-    // TAMPILAN NORMAL (default dashboard): hanya data LENGKAP dan berstatus PERMANEN/NON PERMANEN
-    $where[] = "p.status_lengkap = 'LENGKAP'";
-    $where[] = "p.status_penduduk IN ('PERMANEN', 'NON PERMANEN')";
-    if ($status_penduduk_filter !== "") {
-        $where[] = "p.status_penduduk = '" . mysqli_real_escape_string($conn, $status_penduduk_filter) . "'";
-    }
-}
-
-if (!empty($where)) {
-    $query .= " WHERE " . implode(" AND ", $where) . " ";
-}
-
-$query .= " ORDER BY k.rt ASC, k.nomor_kk ASC, p.id_penduduk ASC ";
-
-$result = mysqli_query($conn, $query);
-
-if ($result) {
-    while ($row = mysqli_fetch_assoc($result)) {
-        $data_penduduk[] = $row;
-    }
-    mysqli_free_result($result);
-} else {
-    die("Gagal mengambil data: " . mysqli_error($conn));
-}
-
-$total_penduduk  = count($data_penduduk);
-$total_kk        = count(array_unique(array_filter(array_column($data_penduduk, 'nomor_kk'))));
-$total_laki      = count(array_filter($data_penduduk, fn($p) => strtoupper((string) $p['jenis_kelamin']) === 'LAKI-LAKI'));
-$total_perempuan = count(array_filter($data_penduduk, fn($p) => strtoupper((string) $p['jenis_kelamin']) === 'PEREMPUAN'));
-
-// Helper untuk class CSS yang aman dari spasi (mis. "NON PERMANEN" -> "non-permanen")
-function cls($v)
-{
-    return str_replace(' ', '-', strtolower(trim((string) ($v ?? ''))));
-}
-// ==========================
-// KELOMPOKKAN DATA PER KK (meniru struktur excel)
-// ==========================
-$grouped = [];
-foreach ($data_penduduk as $p) {
-    $kk = $p['nomor_kk'];
-    if (!isset($grouped[$kk])) {
-        $grouped[$kk] = [
-            'id_keluarga'     => $p['id_keluarga'],
-            'nomor_kk'        => $kk,
-            'alamat_domisili' => $p['alamat_domisili'],
-            'rt'              => $p['rt'],
-            'anggota'         => [],
-        ];
-    }
-    $grouped[$kk]['anggota'][] = $p;
-}
-
-// Urutkan anggota dalam tiap keluarga: Kepala Keluarga dulu, baru yang lain
-$prioritas_hubungan = [
-    'KEPALA KELUARGA' => 0,
-    'SUAMI'           => 1,
-    'ISTRI'           => 1,
-    'ANAK'            => 2,
-];
-foreach ($grouped as &$kel) {
-    usort($kel['anggota'], function ($a, $b) use ($prioritas_hubungan) {
-        $pa = $prioritas_hubungan[strtoupper($a['hubungan_keluarga'] ?? '')] ?? 3;
-        $pb = $prioritas_hubungan[strtoupper($b['hubungan_keluarga'] ?? '')] ?? 3;
-        return $pa <=> $pb;
-    });
-}
-unset($kel);
+// Filter pencarian TIDAK dipakai di load awal (pencarian ditangani AJAX oleh dashboard_load.php)
+$filter_awal = $filter;
+$filter_awal['search'] = '';
+$where = build_where_penduduk($conn, $filter_awal);
 
 // ==========================
-// HELPER: HITUNG UMUR
+// STATISTIK dihitung langsung di database (COUNT/SUM), BUKAN dari menarik
+// semua baris ke PHP. Ini tetap cepat walau datanya ribuan baris.
 // ==========================
-function hitung_umur($tanggal_lahir)
-{
-    if (empty($tanggal_lahir) || $tanggal_lahir === '0000-00-00') {
-        return '-';
-    }
-    try {
-        $lahir    = new DateTime($tanggal_lahir);
-        $sekarang = new DateTime();
-        $diff     = $lahir->diff($sekarang);
-        return "{$diff->y} Thn {$diff->m} Bln {$diff->d} Hari";
-    } catch (Exception $e) {
-        return '-';
-    }
-}
+$stat            = ambil_statistik($conn, $where);
+$total_penduduk  = $stat['total_penduduk'];
+$total_kk        = $stat['total_kk'];
+$total_laki      = $stat['total_laki'];
+$total_perempuan = $stat['total_perempuan'];
+
+// ==========================
+// HANYA ambil 100 baris pertama dari database (LIMIT/OFFSET).
+// Ini inti perbaikan performa: dulu SEMUA baris ditarik lalu disembunyikan
+// pakai JS, sekarang database sendiri yang membatasi jumlah baris yang dikirim.
+// ==========================
+const HALAMAN_AWAL = 100;
+$data_penduduk = ambil_data_penduduk($conn, $where, HALAMAN_AWAL, 0);
+$jumlah_dimuat_awal = count($data_penduduk);
+
+$grouped = group_by_kk($data_penduduk);
 ?>
 
 <!DOCTYPE html>
@@ -518,6 +399,36 @@ function hitung_umur($tanggal_lahir)
             display: none;
         }
 
+        .pagination-info {
+            text-align: center;
+            padding: 0.8rem 0 0.2rem;
+            color: var(--abu-teks);
+            font-size: 0.85rem;
+        }
+
+        .load-more-wrap {
+            display: flex;
+            justify-content: center;
+            padding: 1rem 0 0.2rem;
+        }
+
+        .btn-load-more {
+            background: #fff;
+            color: var(--hijau-tua);
+            border: 1.5px solid var(--hijau-tua);
+            padding: 0.6rem 1.4rem;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .btn-load-more:hover {
+            background: var(--hijau-tua);
+            color: #fff;
+        }
+
         .btn-tambah {
             background: var(--hijau-tua);
             color: #fff;
@@ -777,20 +688,30 @@ function hitung_umur($tanggal_lahir)
             <a href="dashboard.php<?= $rt_filter !== "" ? "?rt=" . urlencode($rt_filter) : "" ?>" class="<?= $status_penduduk_filter === "" ? "active" : "" ?>">Semua Status</a>
             <a href="dashboard.php?status_penduduk=PERMANEN<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>" class="<?= $status_penduduk_filter === "PERMANEN" ? "active" : "" ?>">Penduduk Tetap</a>
             <a href="dashboard.php?status_penduduk=NON+PERMANEN<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>" class="<?= $status_penduduk_filter === "NON PERMANEN" ? "active" : "" ?>">Penduduk Tidak Tetap</a>
-            <a href="dashboard.php?tampilan=meninggal<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>"
-                class="<?= $tampilan_khusus === "meninggal" ? "active" : "" ?>"
+            <a href="dashboard.php?status_penduduk=MENINGGAL<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>"
+                class="<?= $status_penduduk_filter === "MENINGGAL" ? "active" : "" ?>"
                 >
                 Meninggal
             </a>
-            <a href="dashboard.php?tampilan=tidak_lengkap<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>"
-                class="<?= $tampilan_khusus === "tidak_lengkap" ? "active" : "" ?>"
+            <a href="dashboard.php?status_penduduk=TIDAK+LENGKAP<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>"
+                class="<?= $status_penduduk_filter === "TIDAK LENGKAP" ? "active" : "" ?>"
                 >
                 Data Tidak Lengkap
             </a>
         </div>
         <div class="table-card">
             <div class="table-header">
-                <h2>Data Kependudukan<?= $rt_filter !== "" ? " - RT $rt_filter" : "" ?><?= $status_penduduk_filter !== "" ? " - " . ($status_penduduk_filter === "PERMANEN" ? "Penduduk Tetap" : "Penduduk Tidak Tetap") : "" ?></h2>
+                <h2>Data Kependudukan<?= $rt_filter !== "" ? " - RT $rt_filter" : "" ?><?php
+                    if ($status_penduduk_filter !== "") {
+                        $label_status = [
+                            'PERMANEN'     => 'Penduduk Tetap',
+                            'NON PERMANEN' => 'Penduduk Tidak Tetap',
+                            'MENINGGAL'    => 'Meninggal',
+                            'TIDAK LENGKAP' => 'Data Tidak Lengkap',
+                        ];
+                        echo " - " . ($label_status[$status_penduduk_filter] ?? $status_penduduk_filter);
+                    }
+                ?></h2>
                 <div class="table-actions">
                     <input type="text" id="searchInput" class="search-box" placeholder="Cari NIK, nama, alamat, dll...">
                     <a href="import_massal.php" class="btn btn-import">📥 Import Massal</a>
@@ -817,85 +738,123 @@ function hitung_umur($tanggal_lahir)
                         </tr>
                     </thead>
 
-                    <?php if (empty($grouped)): ?>
-                        <tbody>
-                            <tr>
-                                <td colspan="12" style="text-align:center; padding:2rem; color:#94a3b8;">Tidak ada data.</td>
-                            </tr>
-                        </tbody>
-                    <?php else: ?>
-                        <?php foreach ($grouped as $kel): ?>
-                            <tbody class="kk-group">
-                                <tr class="kk-header-row">
-                                    <th colspan="12">
-                                        <span class="kk-tag">No. KK: <?= htmlspecialchars($kel['nomor_kk'] ?? '-') ?></span>
-                                        <span class="rt-tag">RT <?= htmlspecialchars($kel['rt'] ?? '-') ?></span>
-                                        Alamat: <?= htmlspecialchars($kel['alamat_domisili'] ?? '-') ?>
-                                        <a class="btn-edit-kk"
-                                            href="data_detail.php?id_keluarga=<?= urlencode($kel['id_keluarga'] ?? '') ?>">
-                                            Edit
-                                        </a>
-                                    </th>
-                                </tr>
-                                <?php foreach ($kel['anggota'] as $i => $p): ?>
-                                    <tr class="data-row">
-                                        <td><?= $i + 1 ?></td>
-                                        <td><?= htmlspecialchars($p['nik'] ?? '') ?></td>
-                                        <td><?= htmlspecialchars($p['nama_lengkap'] ?? '') ?></td>
-                                        <td>
-                                            <?= htmlspecialchars($p['tempat_lahir'] ?? '') ?>,
-                                            <?= !empty($p['tanggal_lahir']) ? htmlspecialchars(date('d-m-Y', strtotime($p['tanggal_lahir']))) : '-' ?>
-                                        </td>
-                                        <td><?= htmlspecialchars(hitung_umur($p['tanggal_lahir'] ?? null)) ?></td>
-                                        <td><?= htmlspecialchars($p['jenis_kelamin'] ?? '') ?></td>
-                                        <td><?= htmlspecialchars($p['hubungan_keluarga'] ?? '') ?></td>
-                                        <td><?= htmlspecialchars($p['agama'] ?? '') ?></td>
-                                        <td><?= htmlspecialchars($p['pendidikan_terakhir'] ?? '') ?></td>
-                                        <td><?= htmlspecialchars($p['pekerjaan'] ?? '') ?></td>
-                                        <td><?= htmlspecialchars($p['kewarganegaraan'] ?? '') ?></td>
-                                        <td>
-                                            <?php $statusClass = strtolower($p['status_penduduk'] ?? ''); ?>
-                                            <span class="badge <?= $statusClass ?>"><?= htmlspecialchars($p['status_penduduk'] ?? '') ?></span>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                    <?= render_grup_html($grouped) ?>
                 </table>
                 <div class="no-result" id="noResult">Tidak ada data yang cocok.</div>
+            </div>
+            <div class="pagination-info" id="paginationInfo"></div>
+            <div class="load-more-wrap" id="loadMoreWrap">
+                <button type="button" class="btn-load-more" id="loadMoreBtn">Tampilkan 100 Berikutnya</button>
             </div>
         </div>
 
     </div>
 
     <script>
-        const searchInput = document.getElementById('searchInput');
-        const groups = document.querySelectorAll('#dataTable tbody.kk-group');
-        const noResult = document.getElementById('noResult');
+        const searchInput   = document.getElementById('searchInput');
+        const dataTable     = document.getElementById('dataTable');
+        const noResult      = document.getElementById('noResult');
+        const paginationInfo = document.getElementById('paginationInfo');
+        const loadMoreWrap  = document.getElementById('loadMoreWrap');
+        const loadMoreBtn   = document.getElementById('loadMoreBtn');
 
+        const PAGE_SIZE = 100;
+
+        // Filter yang sedang aktif di halaman (dari PHP), dikirim juga ke AJAX
+        // supaya load-more/pencarian tetap konsisten dengan filter RT/status yang dipilih.
+        const FILTER_RT     = <?= json_encode($rt_filter) ?>;
+        const FILTER_STATUS = <?= json_encode($status_penduduk_filter) ?>;
+        const FILTER_TAMPILAN = <?= json_encode($tampilan_khusus) ?>;
+
+        let offset       = <?= (int) $jumlah_dimuat_awal ?>; // sudah dimuat dari PHP saat pertama buka halaman
+        let totalPenduduk = <?= (int) $total_penduduk ?>;
+        let searchDebounce = null;
+        let searchToken   = 0; // supaya respons AJAX yang telat/kadaluarsa tidak menimpa hasil terbaru
+
+        updatePaginationInfo(<?= (int) $jumlah_dimuat_awal ?>, totalPenduduk, false);
+        loadMoreWrap.style.display = (<?= (int) $jumlah_dimuat_awal ?> < totalPenduduk) ? 'flex' : 'none';
+
+        function buildQuery(params) {
+            const usp = new URLSearchParams(params);
+            if (FILTER_RT) usp.set('rt', FILTER_RT);
+            if (FILTER_STATUS) usp.set('status_penduduk', FILTER_STATUS);
+            if (FILTER_TAMPILAN) usp.set('tampilan', FILTER_TAMPILAN);
+            return usp.toString();
+        }
+
+        function updatePaginationInfo(shown, total, isSearch) {
+            if (total > 0) {
+                paginationInfo.textContent = isSearch
+                    ? 'Ditemukan ' + total + ' data cocok (menampilkan ' + shown + ')'
+                    : 'Menampilkan ' + shown + ' dari ' + total + ' penduduk';
+                paginationInfo.style.display = 'block';
+            } else {
+                paginationInfo.style.display = 'none';
+            }
+            noResult.style.display = shown === 0 ? 'block' : 'none';
+        }
+
+        // ==========================
+        // Ambil satu "halaman" data dari server (dashboard_load.php) lewat AJAX.
+        // append=false -> ganti isi tabel (dipakai saat mulai cari / reset pencarian)
+        // append=true  -> tambahkan di bawah data yang sudah ada (tombol Load More)
+        // ==========================
+        async function muatData(offsetVal, keyword, append) {
+            const myToken = ++searchToken;
+            const qs = buildQuery({ offset: offsetVal, limit: PAGE_SIZE, search: keyword });
+
+            loadMoreBtn.disabled = true;
+            loadMoreBtn.textContent = 'Memuat...';
+
+            try {
+                const res = await fetch('dashboard_load.php?' + qs);
+                const data = await res.json();
+
+                if (myToken !== searchToken) return; // ada request lebih baru, abaikan yang ini
+
+                if (!append) {
+                    dataTable.querySelectorAll('tbody').forEach(tb => tb.remove());
+                }
+                dataTable.insertAdjacentHTML('beforeend', data.html);
+
+                offset = data.offset;
+                totalPenduduk = data.total;
+
+                const shownNow = dataTable.querySelectorAll('tr.data-row').length;
+                updatePaginationInfo(shownNow, totalPenduduk, keyword !== '');
+                loadMoreWrap.style.display = data.has_more ? 'flex' : 'none';
+            } catch (e) {
+                console.error('Gagal memuat data:', e);
+            } finally {
+                loadMoreBtn.disabled = false;
+                loadMoreBtn.textContent = 'Tampilkan 100 Berikutnya';
+            }
+        }
+
+        // ==========================
+        // Live search: dicari LANGSUNG di database (server-side), dengan debounce
+        // supaya tidak menembak query di setiap ketukan tombol.
+        // ==========================
         searchInput.addEventListener('keyup', function() {
-            const keyword = this.value.toLowerCase();
-            let visibleCount = 0;
+            // Huruf yang diketik otomatis dijadikan huruf besar (uppercase),
+            // sambil menjaga posisi kursor tetap di tempat semula.
+            const selStart = this.selectionStart;
+            const selEnd = this.selectionEnd;
+            this.value = this.value.toUpperCase();
+            this.setSelectionRange(selStart, selEnd);
 
-            groups.forEach(group => {
-                const dataRows = group.querySelectorAll('tr.data-row');
-                let groupHasMatch = false;
+            const keyword = this.value.trim();
 
-                dataRows.forEach(row => {
-                    const text = row.textContent.toLowerCase();
-                    const match = text.includes(keyword);
-                    row.style.display = match ? '' : 'none';
-                    if (match) {
-                        groupHasMatch = true;
-                        visibleCount++;
-                    }
-                });
-                group.style.display = groupHasMatch ? '' : 'none';
-            });
-
-            noResult.style.display = visibleCount === 0 ? 'block' : 'none';
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(function() {
+                muatData(0, keyword, false);
+            }, 350);
         });
+
+        loadMoreBtn.addEventListener('click', function() {
+            muatData(offset, searchInput.value.trim(), true);
+        });
+
         const navToggle = document.getElementById('navToggle');
         const navMenu = document.getElementById('navMenu');
         navToggle.addEventListener('click', function() {

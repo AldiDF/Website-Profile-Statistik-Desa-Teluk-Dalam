@@ -109,11 +109,19 @@ foreach ($input['keluarga'] as $idxKel => $kel) {
     $alamat  = bersihkan((string) ($kel['alamat_domisili'] ?? ''));
     $anggotaList = $kel['anggota'] ?? [];
     $labelKK = $nomorKK !== '' ? $nomorKK : ('baris data ke-' . ($idxKel + 1));
-    if (!ctype_digit($nomorKK) || strlen($nomorKK) > 16) {
-        $ringkasan['gagal'][] = "KK $labelKK: Nomor KK tidak valid (harus angka dan maksimal 16 digit).";
+
+    if (!ctype_digit($nomorKK)) {
+        $ringkasan['gagal'][] = "KK $labelKK: Nomor KK tidak valid (harus berupa angka saja).";
         continue;
     }
+    if (strlen($nomorKK) > 18) {
+        $ringkasan['gagal'][] = "KK $labelKK: Nomor KK terlalu panjang ('$nomorKK', maksimal 18 digit sesuai kapasitas kolom di database).";
+        continue;
+    }
+    // Boleh masuk kalau panjangnya 1-18 digit, TAPI kalau bukan tepat 16 digit,
+    // seluruh anggota keluarga ini otomatis ditandai TIDAK LENGKAP di bawah.
     $kkTidakLengkap = (strlen($nomorKK) !== 16);
+
     mysqli_begin_transaction($conn);
     try {
         $keluargaLama = ambil_data_keluarga_by_nomor_kk($conn, $nomorKK);

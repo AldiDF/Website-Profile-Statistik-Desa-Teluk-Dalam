@@ -374,7 +374,7 @@ function render_anggota_block($a, $nomor)
             </div>
             <div class="form-group">
                 <label>Status Hubungan Dalam Keluarga</label>
-                <input type="text" name="hubungan_keluarga[]" maxlength="20" required>
+                <input type="text" name="hubungan_keluarga[]" maxlength="20" value="<?= htmlspecialchars($a['hubungan_keluarga'] ?? '') ?>" required>
             </div>
 
             <div class="form-group">
@@ -783,14 +783,15 @@ function render_anggota_block($a, $nomor)
                 for (let j = 1; j <= n; j++) {
                     const cost = a[i - 1] === b[j - 1] ? 0 : 1;
                     dp[i][j] = Math.min(
-                        dp[i - 1][j] + 1, 
-                        dp[i][j - 1] + 1, 
-                        dp[i - 1][j - 1] + cost 
+                        dp[i - 1][j] + 1,
+                        dp[i][j - 1] + 1,
+                        dp[i - 1][j - 1] + cost
                     );
                 }
             }
             return dp[m][n];
         }
+
         function cariTerdekat(teks, daftarKandidat, ambangRasio = 0.3) {
             let terbaik = null;
             let jarakTerbaik = Infinity;
@@ -859,6 +860,7 @@ function render_anggota_block($a, $nomor)
             'DOKTOR': 'STRATA III',
         };
         const DAFTAR_KEY_PENDIDIKAN = Object.keys(MAP_PENDIDIKAN);
+
         function normalisasiPendidikan(v) {
             if (!v) return '';
             const key = v.toString().trim().toUpperCase().replace(/\s*\/\s*/g, '/').replace(/\s+/g, ' ');
@@ -868,6 +870,7 @@ function render_anggota_block($a, $nomor)
             return key;
         }
         const JENIS_KELAMIN_FUZZY = ['LAKI-LAKI', 'LAKI LAKI', 'PEREMPUAN', 'WANITA', 'PRIA'];
+
         function normalisasiJenisKelamin(v) {
             if (!v) return '';
             const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
@@ -1106,7 +1109,7 @@ function render_anggota_block($a, $nomor)
                 block.querySelector('[name="tempat_lahir[]"]').value = tempatLahir;
                 block.querySelector('[name="tanggal_lahir[]"]').value = tglLahir;
                 setSelectValue(block, 'jenis_kelamin[]', jk);
-                setSelectValue(block, 'hubungan_keluarga[]', hubungan);
+                block.querySelector('[name="hubungan_keluarga[]"]').value = hubungan;
                 setSelectValue(block, 'agama[]', agama);
                 setSelectValue(block, 'pendidikan_terakhir[]', pendidikan);
                 block.querySelector('[name="pekerjaan[]"]').value = pekerjaan;

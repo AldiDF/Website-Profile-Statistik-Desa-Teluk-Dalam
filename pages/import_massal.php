@@ -283,8 +283,8 @@ if (!isset($conn)) {
                     const cost = a[i - 1] === b[j - 1] ? 0 : 1;
                     dp[i][j] = Math.min(
                         dp[i - 1][j] + 1,
-                        dp[i][j - 1] + 1, 
-                        dp[i - 1][j - 1] + cost 
+                        dp[i][j - 1] + 1,
+                        dp[i - 1][j - 1] + cost
                     );
                 }
             }
@@ -314,18 +314,18 @@ if (!isset($conn)) {
             'TIDAK/BELUM SEKOLAH': 'TIDAK SEKOLAH',
             '': 'TIDAK SEKOLAH',
             'BELUM TAMATSD/SEDERAJAT': 'TIDAK SEKOLAH',
-            'BELUM/TIDAK TURUN' : 'TIDAK SEKOLAH',
+            'BELUM/TIDAK TURUN': 'TIDAK SEKOLAH',
             'TK': 'PAUD/TK',
             'PAUD': 'PAUD/TK',
             'PAUD/TK': 'PAUD/TK',
-            'PAUD/TK SEDERAJAT' : 'PAUD/TK',
-            'PELAJAR TK/SEDERAJAT' : 'PAUD/TK',
+            'PAUD/TK SEDERAJAT': 'PAUD/TK',
+            'PELAJAR TK/SEDERAJAT': 'PAUD/TK',
             'SD/SEDERAJAT': 'SD/SEDERAJAT',
             'SD': 'SD/SEDERAJAT',
-            'Tk/SD' : 'SD/SEDERAJAT',
+            'Tk/SD': 'SD/SEDERAJAT',
             'SEDERAJAT SD': 'SD/SEDERAJAT',
             'TAMAT SD/SEDERAJAT': 'SD/SEDERAJAT',
-            'PELAJAR/SD' : 'SD/SEDERAJAT',
+            'PELAJAR/SD': 'SD/SEDERAJAT',
             'SLTP/SEDERAJAT': 'SLTP/SEDERAJAT',
             'SMP/SEDERAJAT': 'SLTP/SEDERAJAT',
             'SLTP': 'SLTP/SEDERAJAT',
@@ -352,7 +352,7 @@ if (!isset($conn)) {
             'D2': 'DIPLOMA I/II/III',
             'D3': 'DIPLOMA I/II/III',
             'AKADEMI/D3': 'DIPLOMA I/II/III',
-            'AKADEMI/DIPLOMA III/SARJANA MUDA' : 'DIPLOMA I/II/III',
+            'AKADEMI/DIPLOMA III/SARJANA MUDA': 'DIPLOMA I/II/III',
             'DIPLOMA IV/STRATA I': 'DIPLOMA IV/STRATA I',
             'DIPLOMA IV/SEDERAJAT': 'DIPLOMA IV/STRATA I',
             'D-IV/SEDERAJAT': 'DIPLOMA IV/STRATA I',
@@ -384,7 +384,7 @@ if (!isset($conn)) {
             if (MAP_PENDIDIKAN[key]) return MAP_PENDIDIKAN[key];
             const cocokFuzzy = cariTerdekat(key, DAFTAR_KEY_PENDIDIKAN);
             if (cocokFuzzy) return MAP_PENDIDIKAN[cocokFuzzy];
-            return key; 
+            return key;
         }
 
         const JENIS_KELAMIN_FUZZY = ['LAKI-LAKI', 'LAKI LAKI', 'PEREMPUAN', 'WANITA', 'PRIA'];
@@ -393,7 +393,7 @@ if (!isset($conn)) {
             if (!v) return '';
             const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
             if (key === 'L' || key === 'LK' || key === 'LAKI2' || /^LAKI[\s-]*LAKI$/.test(key)) {
-                return 'LAKI-LAKI'; 
+                return 'LAKI-LAKI';
             }
             if (key === 'P' || key === 'PR' || key === 'WANITA' || key === 'PEREMPUAN') {
                 return 'PEREMPUAN';
@@ -424,6 +424,7 @@ if (!isset($conn)) {
             'CONGHUCU': 'KONGHUCU',
         };
         const DAFTAR_KEY_AGAMA = Object.keys(MAP_AGAMA);
+
         function normalisasiAgama(v) {
             if (!v) return '';
             const key = v.toString().trim().toUpperCase().replace(/\s+/g, ' ');
@@ -450,14 +451,15 @@ if (!isset($conn)) {
             if (cocokFuzzy) return cocokFuzzy;
             return 'FAMILI LAIN';
         }
+
         function ekstrakAlamat(cellC) {
             const teks = cellC.toString();
             const mMentah = teks.match(/ALAMAT\s*:\s*(.*)/i);
             const sisaTeks = mMentah ? mMentah[1] : '';
             let alamat = sisaTeks
-                .split(/,\s*NAMA DUSUN/i)[0] 
-                .split(/,?\s*RT\/RW/i)[0] 
-                .replace(/,?\s*RT\.?\s*\d{1,3}\s*$/i, '') 
+                .split(/,\s*NAMA DUSUN/i)[0]
+                .split(/,?\s*RT\/RW/i)[0]
+                .replace(/,?\s*RT\.?\s*\d{1,3}\s*$/i, '')
                 .trim();
 
             return alamat;
@@ -467,7 +469,7 @@ if (!isset($conn)) {
             const namaBersih = namaFile.replace(/\.(xlsx|xls)$/i, '');
             const m = namaBersih.match(/RT\s*\.?\s*(\d{1,3})/i);
             if (m) {
-                return m[1].padStart(3, '0'); 
+                return m[1].padStart(3, '0');
             }
             return '';
         }
@@ -555,7 +557,7 @@ if (!isset($conn)) {
         }
 
         function parseSemuaKK(rows, rtDariFile) {
-            const statusHeaderList = []; 
+            const statusHeaderList = [];
             for (let i = 0; i < rows.length; i++) {
                 const barisTeks = (rows[i] || []).map(c => (c || '').toString()).join(' ').toUpperCase();
                 if (barisTeks.includes('BUKU INDUK PENDUDUK WNI')) {
@@ -596,7 +598,7 @@ if (!isset($conn)) {
                 const cellC = (rowKK[2] || '').toString();
 
                 let nomorKK = '';
-                const mKK = cellA.match(/(\d{16})/);
+                const mKK = cellA.match(/(\d{10,18})/); // tangkap 10-18 digit, bukan cuma persis 16
                 if (mKK) nomorKK = mKK[1];
 
                 const alamat = ekstrakAlamat(cellC);
@@ -629,9 +631,9 @@ if (!isset($conn)) {
                     });
                 }
 
-                if (nomorKK && anggota.length > 0) {
+                if (anggota.length > 0) {
                     hasil.push({
-                        nomor_kk: nomorKK,
+                        nomor_kk: nomorKK, // boleh tetap '' -> akan ditandai di preview, bukan hilang diam-diam
                         rt: rt,
                         alamat_domisili: alamat,
                         anggota: anggota,
@@ -659,12 +661,12 @@ if (!isset($conn)) {
         }
 
         function deteksiNikDuplikatLintasKK(daftarKeluarga) {
-            const petaNik = {}; 
+            const petaNik = {};
 
             daftarKeluarga.forEach(k => {
                 k.anggota.forEach(a => {
                     const nik = (a.nik || '').trim();
-                    if (nik === '') return; 
+                    if (nik === '') return;
 
                     if (!petaNik[nik]) petaNik[nik] = [];
                     petaNik[nik].push({
@@ -687,6 +689,28 @@ if (!isset($conn)) {
             return duplikat;
         }
 
+        function deteksiKKDuplikat(daftarKeluarga) {
+            const petaKK = {}; // { nomor_kk: [ index1, index2, ... ] }
+
+            daftarKeluarga.forEach((k, idx) => {
+                if (!petaKK[k.nomor_kk]) petaKK[k.nomor_kk] = [];
+                petaKK[k.nomor_kk].push(idx);
+            });
+
+            const duplikat = [];
+            for (const nomorKK in petaKK) {
+                const indexList = petaKK[nomorKK];
+                if (indexList.length > 1) {
+                    duplikat.push({
+                        nomor_kk: nomorKK,
+                        jumlah_blok: indexList.length,
+                        nomor_urut: indexList.map(i => i + 1), // untuk ditampilkan sesuai "No." di tabel ringkasan
+                    });
+                }
+            }
+            return duplikat;
+        }
+
         function tampilkanPreview(daftarKeluarga) {
             if (daftarKeluarga.length === 0) {
                 previewArea.innerHTML = '';
@@ -701,13 +725,22 @@ if (!isset($conn)) {
             let html = '<table class="preview-table"><thead><tr>' +
                 '<th>No.</th><th>No. KK</th><th>RT</th><th>Alamat</th><th>Jumlah Anggota</th><th>Status Penduduk</th>' +
                 '</tr></thead><tbody>';
+            let adaKKKosong = false;
             daftarKeluarga.forEach((k, idx) => {
                 totalAnggota += k.anggota.length;
                 const statusKK = k.anggota.length > 0 ? k.anggota[0].status_penduduk : '-';
                 const badgeClass = statusKK === 'NON PERMANEN' ? 'status-non-permanen' : 'status-permanen';
-                html += `<tr>
+
+                const kkKosong = (k.nomor_kk === '');
+                if (kkKosong) adaKKKosong = true;
+                const rowStyle = kkKosong ? ' style="background:#fee2e2;"' : '';
+                const isiNoKK = kkKosong ?
+                    '<span style="color:#b91c1c; font-weight:600;">⚠️ Tidak terbaca</span>' :
+                    k.nomor_kk;
+
+                html += `<tr${rowStyle}>
         <td>${idx + 1}.</td>
-        <td>${k.nomor_kk}</td>
+        <td>${isiNoKK}</td>
         <td>${k.rt || '-'}</td>
         <td>${k.alamat_domisili || '-'}</td>
         <td>${k.anggota.length}</td>
@@ -770,8 +803,25 @@ if (!isset($conn)) {
     </p>`;
             }
 
+            const kkDuplikat = deteksiKKDuplikat(daftarKeluarga);
+            let peringatanKKDuplikat = '';
+            if (kkDuplikat.length > 0) {
+                let daftarHtml = '<ul style="margin:0.4rem 0 0 1.2rem; padding:0;">';
+                kkDuplikat.forEach(d => {
+                    daftarHtml += `<li style="margin-bottom:0.2rem;">No. KK <strong>${d.nomor_kk}</strong> muncul sebagai ${d.jumlah_blok} blok terpisah (baris No. ${d.nomor_urut.join(', ')} di tabel ringkasan di atas)</li>`;
+                });
+                daftarHtml += '</ul>';
+
+                peringatanKKDuplikat = `<p style="color:#a16207; font-size:0.85rem; margin-top:0.6rem;">
+        ⚠️ Ditemukan ${kkDuplikat.length} No. KK yang terbaca lebih dari 1 kali sebagai blok keluarga terpisah dalam file ini.
+        Ini bisa terjadi kalau ada 1 keluarga tercatat 2 kali di Excel (misal masuk di tabel PERMANEN dan NON PERMANEN sekaligus), atau salah ketik No. KK.
+        Sistem tetap akan memproses semuanya secara berurutan (blok terakhir akan menimpa data blok sebelumnya untuk KK yang sama), tapi sebaiknya diperiksa dulu:
+        ${daftarHtml}
+    </p>`;
+            }
+
             previewArea.innerHTML = html +
-                `<details style="margin-top:1rem;"><summary style="cursor:pointer; color:var(--hijau-tua); font-weight:600; font-size:0.88rem;">Lihat detail per anggota (${totalAnggota} orang) — cek hasil parsing sebelum import</summary>${peringatanEnum}${peringatanDuplikat}${detailHtml}</details>`;
+                `<details style="margin-top:1rem;"><summary style="cursor:pointer; color:var(--hijau-tua); font-weight:600; font-size:0.88rem;">Lihat detail per anggota (${totalAnggota} orang) — cek hasil parsing sebelum import</summary>${peringatanEnum}${peringatanDuplikat}${peringatanKKDuplikat}${detailHtml}</details>`;
 
             statusMsg.textContent = `Terbaca ${daftarKeluarga.length} KK, total ${totalAnggota} anggota.`;
             statusMsg.className = 'status-msg';
