@@ -1,8 +1,20 @@
+/* =======================================================
+   ================ STYLE UNTUK BERANDA ==================
+   ======================================================= */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
   font-family: 'Poppins', Arial, Helvetica, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+section[id],
+.hero[id] {
+  scroll-margin-top: 90px;
 }
 
 body {
@@ -20,8 +32,9 @@ header {
   z-index: 1000;
 }
 
-nav {
+header nav {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
 }
@@ -62,19 +75,65 @@ nav a:hover {
   text-decoration: underline;
 }
 
+#navMenuBeranda a.active {
+  color: var(--emas);
+  font-weight: 600;
+}
+
+.nav-toggle-mobile {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  padding: 0.2rem 0.4rem;
+}
+
+/* --- HERO & SLIDESHOW --- */
 .hero {
-  background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("../assets/teas.jpeg");
-  height: 90vh; 
+  position: relative;
+  overflow: hidden;
+  height: 90vh;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   color: white;
   padding: 20px;
-  
+}
+
+.hero-slider {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out;
+}
+
+.hero-slide.active {
+  opacity: 1;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(30, 30, 30, 0.48) 0%, rgba(0, 0, 0, 0.4) 100%);
+  z-index: 1;
 }
 
 .hero-content {
+  position: relative;
+  z-index: 2;
   max-width: 700px;
 }
 
@@ -88,6 +147,35 @@ nav a:hover {
   font-size: 1.2rem;
   font-weight: 300;
   margin-bottom: 30px;
+}
+
+.hero-dots {
+  position: absolute;
+  left: 50%;
+  bottom: 1.3rem;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  z-index: 2;
+}
+
+.hero-dots button {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: background 0.3s, opacity 0.3s, transform 0.3s;
+}
+
+.hero-dots button.active {
+  background: #f4b400;
+  border-color: #f4b400;
+  opacity: 1;
+  transform: scale(1.15);
 }
 
 .btn {
@@ -104,6 +192,7 @@ nav a:hover {
   background: #d99d00;
 }
 
+/* --- SECTIONS & CARDS --- */
 section {
   padding: 60px 8%;
 }
@@ -131,7 +220,7 @@ section {
   padding: 25px;
   border-radius: 12px;
   text-align: center;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
 
 .card h4 {
@@ -162,7 +251,7 @@ section {
   background: white;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
 
 .news-card img {
@@ -175,6 +264,74 @@ section {
   padding: 20px;
 }
 
+/* --- CHART STYLES --- */
+.chart-group-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0c3c2e;
+  margin: 2.2rem 0 1rem;
+  padding-left: 0.6rem;
+  border-left: 4px solid #f4b400;
+}
+
+.chart-group-title:first-of-type {
+  margin-top: 1.5rem;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.chart-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-card.full {
+  grid-column: 1 / -1;
+}
+
+.chart-card h4 {
+  text-align: center;
+  font-size: 0.95rem;
+  color: #0c3c2e;
+  margin-bottom: 0.3rem;
+}
+
+.chart-card .sub {
+  text-align: center;
+  font-size: 0.78rem;
+  color: #898781;
+  margin-bottom: 0.8rem;
+}
+
+.chart-card .canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 260px;
+}
+
+.chart-card.full .canvas-wrap {
+  height: 320px;
+}
+
+.chart-card.full .canvas-wrap.tall {
+  height: 420px;
+}
+
+.chart-card .highlight {
+  text-align: center;
+  font-size: 0.85rem;
+  margin-top: 0.8rem;
+  color: #0f4c3a;
+}
+
 footer {
   background: #0f4c3a;
   color: white;
@@ -183,22 +340,279 @@ footer {
   margin-top: 40px;
 }
 
+/* --- MEDIA QUERIES UNTUK BERANDA --- */
 @media (max-width: 768px) {
-  nav {
+  .nav-toggle-mobile {
+    display: block;
+  }
+
+  header nav ul {
+    display: none;
+    width: 100%;
     flex-direction: column;
-    gap: 15px;
+    align-items: stretch;
+    gap: 0.3rem;
+    margin-top: 0.8rem;
+    list-style: none;
   }
 
-  nav ul {
-    flex-wrap: wrap;
-    justify-content: center;
+  header nav ul.open {
+    display: flex;
   }
 
+  header nav ul li a {
+    display: block;
+    text-align: center;
+    padding: 0.7rem;
+  }
+
+  .hero-content h2,
   .hero h2 {
-    font-size: 2.2rem;
+    font-size: 1.35rem;
+    line-height: 1.35;
   }
 
+  .hero-content p,
   .hero p {
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
+
+  .about {
+    grid-template-columns: 1fr;
+  }
+
+  .about iframe {
+    min-height: 240px;
+  }
+
+  .section-title h3 {
+    font-size: 1.2rem;
+  }
+
+  .cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .chart-group-title {
+    margin: 1.6rem 0 0.8rem;
+    font-size: 0.88rem;
+  }
+
+  .chart-grid {
+    gap: 1rem;
+  }
+
+  .chart-card {
+    padding: 1rem;
+  }
+
+  .chart-card .canvas-wrap {
+    height: 220px;
+  }
+
+  .chart-card.full .canvas-wrap {
+    height: 260px;
+  }
+
+  .chart-card.full .canvas-wrap.tall {
+    height: 320px;
+  }
+
+  footer {
+    text-align: center;
+    padding: 1.2rem 1rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .cards {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  .card h4 {
+    font-size: 0.8rem;
+  }
+
+  .card p strong {
+    font-size: 0.95rem;
+  }
+
+  .chart-card h4 {
+    font-size: 0.85rem;
+  }
+}
+
+
+/* =======================================================
+   ================ STYLE UNTUK LOGIN ====================
+   ======================================================= */
+:root {
+  --hijau-tua: #0f4c3a;
+  --emas: #f4b400;
+  --abu-teks: #898781;
+  --border-soft: #e1e0d9;
+}
+
+/* Class 'login-body' ditambahkan khusus agar background login 
+   tidak menimpa background halaman beranda */
+body.login-body {
+  font-family: 'Poppins', Arial, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(160deg, var(--hijau-tua) 0%, #123f30 55%, #0b2e22 100%);
+  position: relative;
+  overflow: hidden;
+  padding: 1.5rem;
+}
+
+body.login-body::before,
+body.login-body::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(244, 180, 0, 0.08);
+}
+
+body.login-body::before {
+  width: 420px;
+  height: 420px;
+  top: -140px;
+  right: -120px;
+}
+
+body.login-body::after {
+  width: 300px;
+  height: 300px;
+  bottom: -100px;
+  left: -80px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.login-box {
+  position: relative;
+  z-index: 1;
+  background: #ffffff;
+  padding: 2.5rem 2.25rem;
+  border-radius: 16px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 380px;
+}
+
+.login-box .brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.75rem;
+}
+
+.login-box .brand svg {
+  display: block;
+}
+
+.login-box .brand h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--hijau-tua);
+  text-align: center;
+}
+
+.login-box .brand span {
+  font-size: 0.8rem;
+  color: var(--abu-teks);
+  font-weight: 300;
+}
+
+.form-group {
+  margin-bottom: 1.1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--hijau-tua);
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border: 1.5px solid var(--border-soft);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--emas);
+  box-shadow: 0 0 0 3px rgba(244, 180, 0, 0.18);
+}
+
+.form-group input:disabled {
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+.btn-login {
+  width: 100%;
+  padding: 0.8rem;
+  margin-top: 0.5rem;
+  background: var(--hijau-tua);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.btn-login:hover {
+  background: #0c3c2e;
+}
+
+.btn-login:active {
+  transform: scale(0.98);
+}
+
+.btn-login:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.error-msg {
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 1.1rem;
+  text-align: center;
+}
+
+.back-link {
+  display: block;
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.8rem;
+  color: var(--abu-teks);
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: var(--hijau-tua);
 }

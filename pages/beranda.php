@@ -264,7 +264,6 @@ function fmt(int $n): string
 }
 ?>
 
-
 <!DOCTYPE html>
 <html lang="id">
 
@@ -276,197 +275,9 @@ function fmt(int $n): string
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styless/beranda.css">
+  <link rel="icon" href="../assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-  <style>
-    .chart-group-title {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: #0c3c2e;
-      margin: 2.2rem 0 1rem;
-      padding-left: 0.6rem;
-      border-left: 4px solid #f4b400;
-    }
 
-    .chart-group-title:first-of-type {
-      margin-top: 1.5rem;
-    }
-
-    .chart-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 1.5rem;
-    }
-
-    .chart-card {
-      background: #fff;
-      border-radius: 14px;
-      padding: 1.5rem;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-      display: flex;
-      flex-direction: column;
-    }
-
-    .chart-card.full {
-      grid-column: 1 / -1;
-    }
-
-    .chart-card h4 {
-      text-align: center;
-      font-size: 0.95rem;
-      color: #0c3c2e;
-      margin-bottom: 0.3rem;
-    }
-
-    .chart-card .sub {
-      text-align: center;
-      font-size: 0.78rem;
-      color: #898781;
-      margin-bottom: 0.8rem;
-    }
-
-    .chart-card .canvas-wrap {
-      position: relative;
-      width: 100%;
-      height: 260px;
-    }
-
-    .chart-card.full .canvas-wrap {
-      height: 320px;
-    }
-
-    .chart-card.full .canvas-wrap.tall {
-      height: 420px;
-    }
-
-    .chart-card .highlight {
-      text-align: center;
-      font-size: 0.85rem;
-      margin-top: 0.8rem;
-      color: #0f4c3a;
-    }
-    .nav-toggle-mobile {
-      display: none;
-      background: none;
-      border: none;
-      font-size: 1.6rem;
-      line-height: 1;
-      cursor: pointer;
-      color: inherit;
-      padding: 0.2rem 0.4rem;
-    }
-
-    header nav {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-    }
-    @media (max-width: 768px) {
-      .nav-toggle-mobile {
-        display: block;
-      }
-
-      header nav ul {
-        display: none;
-        width: 100%;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.3rem;
-        margin-top: 0.8rem;
-        list-style: none;
-      }
-
-      header nav ul.open {
-        display: flex;
-      }
-
-      header nav ul li a {
-        display: block;
-        text-align: center;
-        padding: 0.7rem;
-      }
-
-      .hero-content h2 {
-        font-size: 1.35rem;
-        line-height: 1.35;
-      }
-
-      .hero-content p {
-        font-size: 0.9rem;
-      }
-
-      .about {
-        grid-template-columns: 1fr;
-      }
-
-      .about iframe {
-        min-height: 240px;
-      }
-
-      .section-title h3 {
-        font-size: 1.2rem;
-      }
-
-      .cards {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.75rem;
-      }
-
-      .card {
-        padding: 1rem;
-      }
-
-      .chart-group-title {
-        margin: 1.6rem 0 0.8rem;
-        font-size: 0.88rem;
-      }
-
-      .chart-grid {
-        gap: 1rem;
-      }
-
-      .chart-card {
-        padding: 1rem;
-      }
-
-      .chart-card .canvas-wrap {
-        height: 220px;
-      }
-
-      .chart-card.full .canvas-wrap {
-        height: 260px;
-      }
-
-      .chart-card.full .canvas-wrap.tall {
-        height: 320px;
-      }
-
-      footer {
-        text-align: center;
-        padding: 1.2rem 1rem;
-        font-size: 0.85rem;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .cards {
-        grid-template-columns: 1fr 1fr;
-        gap: 0.6rem;
-      }
-
-      .card h4 {
-        font-size: 0.8rem;
-      }
-
-      .card p strong {
-        font-size: 0.95rem;
-      }
-
-      .chart-card h4 {
-        font-size: 0.85rem;
-      }
-    }
-  </style>
 </head>
 
 <body>
@@ -479,7 +290,7 @@ function fmt(int $n): string
       </div>
       <button class="nav-toggle-mobile" id="navToggleBeranda" aria-label="Buka menu" type="button">&#9776;</button>
       <ul id="navMenuBeranda">
-        <li><a href="#">Beranda</a></li>
+        <li><a href="#beranda">Beranda</a></li>
         <li><a href="#profil">Profil Desa</a></li>
         <li><a href="#statistik">Statistik Desa</a></li>
         <li><a href="login.php">Masuk</a></li>
@@ -487,12 +298,21 @@ function fmt(int $n): string
     </nav>
   </header>
 
-  <section class="hero">
+  <section class="hero" id="beranda">
+    <div class="hero-slider" id="heroSlider">
+      <img src="../assets/teas.jpeg" alt="Suasana Desa Teluk Dalam 1" class="hero-slide active">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/e/e0/Kantor_Desa_Teluk_Dalam%2C_Kutai_Kartanegara.jpg" alt="Suasana Desa Teluk Dalam 2" class="hero-slide" loading="lazy">
+      <img src="https://headlinekaltim.co/wp-content/uploads/2022/09/IMG-20220927-WA0012.jpg" alt="Suasana Desa Teluk Dalam 3" class="hero-slide" loading="lazy">
+      <img src="https://nomorsatukaltim.disway.id/upload/ad093def062c47cbc4d323e105bcc9a8.jpeg" alt="Suasana Desa Teluk Dalam 4" class="hero-slide" loading="lazy">
+      <img src="https://www.uinsi.ac.id/wp-content/uploads/2025/08/1.jpg" alt="Suasana Desa Teluk Dalam 5" class="hero-slide" loading="lazy">
+    </div>
+    <div class="hero-overlay"></div>
     <div class="hero-content">
       <h2>Selamat Datang di Website Resmi Desa Teluk Dalam</h2>
       <p>Menyajikan informasi desa, pelayanan masyarakat, potensi desa, dan berita terkini secara cepat dan transparan.</p>
       <a href="#profil" class="btn">Lihat Profil Desa</a>
     </div>
+    <div class="hero-dots" id="heroDots"></div>
   </section>
 
   <section id="profil">
@@ -520,7 +340,7 @@ function fmt(int $n): string
   <section id="statistik">
     <div class="section-title">
       <h3>Statistik Desa</h3>
-      <p>Data singkat kondisi Desa Teluk Dalam (otomatis dari database).</p>
+      <p>Data singkat kondisi Desa Teluk Dalam</p>
     </div>
 
     <div class="cards">
@@ -628,18 +448,10 @@ function fmt(int $n): string
     <p>&copy; 2026 Desa Teluk Dalam. Seluruh hak cipta dilindungi.</p>
   </footer>
 
-  <script>
-    const navToggleBeranda = document.getElementById('navToggleBeranda');
-    const navMenuBeranda = document.getElementById('navMenuBeranda');
-    navToggleBeranda.addEventListener('click', function() {
-      navMenuBeranda.classList.toggle('open');
-    });
-    navMenuBeranda.querySelectorAll('a').forEach(function(link) {
-      link.addEventListener('click', function() {
-        navMenuBeranda.classList.remove('open');
-      });
-    });
+  <script src="../scriptss/beranda.js"></script>
 
+<!-- Script untuk konfigurasi Chart.js (Tetap di PHP karena butuh data dinamis) -->
+  <script>
     const genderLabels = <?= json_encode($gender_labels, JSON_UNESCAPED_UNICODE) ?>;
     const genderData = <?= json_encode($gender_data) ?>;
     const statusLabels = <?= json_encode($status_labels, JSON_UNESCAPED_UNICODE) ?>;
@@ -651,13 +463,10 @@ function fmt(int $n): string
     const piramidaKelompokUsia = <?= json_encode($kelompok_usia_urut, JSON_UNESCAPED_UNICODE) ?>;
     const piramidaLakiData = <?= json_encode($piramida_laki_data) ?>;
     const piramidaPerempuanData = <?= json_encode($piramida_perempuan_data) ?>;
-
     const agamaLabels = <?= json_encode($agama_labels, JSON_UNESCAPED_UNICODE) ?>;
     const agamaData = <?= json_encode($agama_data) ?>;
-
     const pendidikanLabels = <?= json_encode($pendidikan_labels, JSON_UNESCAPED_UNICODE) ?>;
     const pendidikanData = <?= json_encode($pendidikan_data) ?>;
-
     const dependencyLabels = ['Usia Produktif (15-64 th)', 'Usia Non-Produktif'];
     const dependencyData = [<?= $usia_produktif ?>, <?= $usia_muda + $usia_tua ?>];
 
@@ -675,13 +484,10 @@ function fmt(int $n): string
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom'
-          }
-        }
+        plugins: { legend: { position: 'bottom' } }
       }
     });
+
     new Chart(document.getElementById('statusChart'), {
       type: 'bar',
       data: {
@@ -696,29 +502,10 @@ function fmt(int $n): string
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false
-          }
-        },
+        plugins: { legend: { display: false } },
         scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              color: '#898781'
-            },
-            grid: {
-              color: '#e1e0d9'
-            }
-          },
-          x: {
-            ticks: {
-              color: '#898781'
-            },
-            grid: {
-              display: false
-            }
-          }
+          y: { beginAtZero: true, ticks: { color: '#898781' }, grid: { color: '#e1e0d9' } },
+          x: { ticks: { color: '#898781' }, grid: { display: false } }
         }
       }
     });
@@ -727,39 +514,16 @@ function fmt(int $n): string
       type: 'bar',
       data: {
         labels: pekerjaanLabels,
-        datasets: [{
-          data: pekerjaanData,
-          backgroundColor: '#0f4c3a',
-          borderRadius: 4,
-        }]
+        datasets: [{ data: pekerjaanData, backgroundColor: '#0f4c3a', borderRadius: 4 }]
       },
       options: {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false
-          }
-        },
+        plugins: { legend: { display: false } },
         scales: {
-          x: {
-            beginAtZero: true,
-            ticks: {
-              color: '#898781'
-            },
-            grid: {
-              color: '#e1e0d9'
-            }
-          },
-          y: {
-            ticks: {
-              color: '#898781'
-            },
-            grid: {
-              display: false
-            }
-          }
+          x: { beginAtZero: true, ticks: { color: '#898781' }, grid: { color: '#e1e0d9' } },
+          y: { ticks: { color: '#898781' }, grid: { display: false } }
         }
       }
     });
@@ -768,59 +532,26 @@ function fmt(int $n): string
       type: 'bar',
       data: {
         labels: rtLabels,
-        datasets: [{
-          data: rtData,
-          backgroundColor: '#f4b400',
-          borderRadius: 4,
-          maxBarThickness: 60
-        }]
+        datasets: [{ data: rtData, backgroundColor: '#f4b400', borderRadius: 4, maxBarThickness: 60 }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false
-          }
-        },
+        plugins: { legend: { display: false } },
         scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              color: '#898781',
-              stepSize: 1
-            },
-            grid: {
-              color: '#e1e0d9'
-            }
-          },
-          x: {
-            ticks: {
-              color: '#898781'
-            },
-            grid: {
-              display: false
-            }
-          }
+          y: { beginAtZero: true, ticks: { color: '#898781', stepSize: 1 }, grid: { color: '#e1e0d9' } },
+          x: { ticks: { color: '#898781' }, grid: { display: false } }
         }
       }
     });
+
     new Chart(document.getElementById('piramidaChart'), {
       type: 'bar',
       data: {
         labels: piramidaKelompokUsia,
-        datasets: [{
-            label: 'Laki-laki',
-            data: piramidaLakiData,
-            backgroundColor: '#2a78d6',
-            borderRadius: 3,
-          },
-          {
-            label: 'Perempuan',
-            data: piramidaPerempuanData,
-            backgroundColor: '#e87ba4',
-            borderRadius: 3,
-          },
+        datasets: [
+          { label: 'Laki-laki', data: piramidaLakiData, backgroundColor: '#2a78d6', borderRadius: 3 },
+          { label: 'Perempuan', data: piramidaPerempuanData, backgroundColor: '#e87ba4', borderRadius: 3 }
         ]
       },
       options: {
@@ -828,135 +559,57 @@ function fmt(int $n): string
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: {
-            position: 'top'
-          },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => `${ctx.dataset.label}: ${Math.abs(ctx.raw)} jiwa`
-            }
-          }
+          legend: { position: 'top' },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${Math.abs(ctx.raw)} jiwa` } }
         },
         scales: {
-          x: {
-            stacked: false,
-            ticks: {
-              color: '#898781',
-              callback: (val) => Math.abs(val)
-            },
-            grid: {
-              color: '#e1e0d9'
-            }
-          },
-          y: {
-            reverse: true,
-            ticks: {
-              color: '#898781'
-            },
-            grid: {
-              display: false
-            }
-          }
+          x: { stacked: false, ticks: { color: '#898781', callback: (val) => Math.abs(val) }, grid: { color: '#e1e0d9' } },
+          y: { reverse: true, ticks: { color: '#898781' }, grid: { display: false } }
         }
       }
     });
+
     new Chart(document.getElementById('agamaChart'), {
       type: 'doughnut',
       data: {
         labels: agamaLabels,
-        datasets: [{
-          data: agamaData,
-          backgroundColor: ['#0f4c3a', '#2a78d6', '#e87ba4', '#f4b400', '#8e44ad', '#e74c3c'],
-          borderColor: '#ffffff',
-          borderWidth: 2
-        }]
+        datasets: [{ data: agamaData, backgroundColor: ['#0f4c3a', '#2a78d6', '#e87ba4', '#f4b400', '#8e44ad', '#e74c3c'], borderColor: '#ffffff', borderWidth: 2 }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              boxWidth: 12,
-              font: {
-                size: 11
-              }
-            }
-          }
-        }
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
       }
     });
+
     new Chart(document.getElementById('pendidikanChart'), {
       type: 'bar',
       data: {
         labels: pendidikanLabels,
-        datasets: [{
-          data: pendidikanData,
-          backgroundColor: '#0c3c2e',
-          borderRadius: 4,
-        }]
+        datasets: [{ data: pendidikanData, backgroundColor: '#0c3c2e', borderRadius: 4 }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false
-          }
-        },
+        plugins: { legend: { display: false } },
         scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              color: '#898781'
-            },
-            grid: {
-              color: '#e1e0d9'
-            }
-          },
-          x: {
-            ticks: {
-              color: '#898781',
-              font: {
-                size: 10
-              },
-              maxRotation: 40,
-              minRotation: 40
-            },
-            grid: {
-              display: false
-            }
-          }
+          y: { beginAtZero: true, ticks: { color: '#898781' }, grid: { color: '#e1e0d9' } },
+          x: { ticks: { color: '#898781', font: { size: 10 }, maxRotation: 40, minRotation: 40 }, grid: { display: false } }
         }
       }
     });
+
     new Chart(document.getElementById('dependencyChart'), {
       type: 'doughnut',
       data: {
         labels: dependencyLabels,
-        datasets: [{
-          data: dependencyData,
-          backgroundColor: ['#0f4c3a', '#eda100'],
-          borderColor: '#ffffff',
-          borderWidth: 2
-        }]
+        datasets: [{ data: dependencyData, backgroundColor: ['#0f4c3a', '#eda100'], borderColor: '#ffffff', borderWidth: 2 }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         cutout: '60%',
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              boxWidth: 12,
-              font: {
-                size: 11
-              }
-            }
-          }
-        }
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
       }
     });
   </script>
