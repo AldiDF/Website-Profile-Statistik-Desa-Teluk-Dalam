@@ -12,7 +12,6 @@ $total_tetap        = 0;
 $total_tidak_tetap  = 0;
 $total_rt           = 0;
 $nama_kepala_desa   = "-";
-$luas_wilayah       = "443,40 km²";
 $q = mysqli_query($conn, "
     SELECT COUNT(*) AS jumlah
     FROM penduduk
@@ -277,6 +276,7 @@ function fmt(int $n): string
   <link rel="stylesheet" href="../styless/beranda.css">
   <link rel="icon" href="../assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 
 </head>
 
@@ -301,15 +301,13 @@ function fmt(int $n): string
   <section class="hero" id="beranda">
     <div class="hero-slider" id="heroSlider">
       <img src="../assets/teas.jpeg" alt="Suasana Desa Teluk Dalam 1" class="hero-slide active">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/e/e0/Kantor_Desa_Teluk_Dalam%2C_Kutai_Kartanegara.jpg" alt="Suasana Desa Teluk Dalam 2" class="hero-slide" loading="lazy">
-      <img src="https://headlinekaltim.co/wp-content/uploads/2022/09/IMG-20220927-WA0012.jpg" alt="Suasana Desa Teluk Dalam 3" class="hero-slide" loading="lazy">
-      <img src="https://nomorsatukaltim.disway.id/upload/ad093def062c47cbc4d323e105bcc9a8.jpeg" alt="Suasana Desa Teluk Dalam 4" class="hero-slide" loading="lazy">
-      <img src="https://www.uinsi.ac.id/wp-content/uploads/2025/08/1.jpg" alt="Suasana Desa Teluk Dalam 5" class="hero-slide" loading="lazy">
+      <img src="../assets/dermaga_teluk dalam.jpg" alt="Suasana Desa Teluk Dalam 2" class="hero-slide" loading="lazy">
+      <img src="../assets/sekolah_unmul_kkn_52.jpg" alt="Suasana Desa Teluk Dalam 3" class="hero-slide" loading="lazy">
+      <img src="../assets/Kantor_Desa_Teluk_Dalam,_Kutai_Kartanegara.jpg" alt="Suasana Desa Teluk Dalam 4" class="hero-slide" loading="lazy">
     </div>
     <div class="hero-overlay"></div>
     <div class="hero-content">
       <h2>Selamat Datang di Website Resmi Desa Teluk Dalam</h2>
-      <p>Menyajikan informasi desa, pelayanan masyarakat, potensi desa, dan berita terkini secara cepat dan transparan.</p>
       <a href="#profil" class="btn">Lihat Profil Desa</a>
     </div>
     <div class="hero-dots" id="heroDots"></div>
@@ -331,12 +329,11 @@ function fmt(int $n): string
       </iframe>
       <div>
         <h3>Tentang Desa Teluk Dalam</h3>
-        <p>Desa Teluk Dalam adalah desa yang memiliki kekayaan alam, budaya, dan sumber daya masyarakat yang unggul. Pemerintah desa berkomitmen untuk memberikan pelayanan terbaik, meningkatkan kesejahteraan warga, serta menjaga kelestarian lingkungan.</p>
-        <p>Website ini hadir sebagai sarana informasi resmi bagi masyarakat desa maupun pengunjung.</p>
+        <p class="justify">Desa Teluk Dalam adalah desa yang memiliki kekayaan alam, budaya, dan sumber daya masyarakat yang unggul. Pemerintah desa berkomitmen untuk memberikan pelayanan terbaik, meningkatkan kesejahteraan warga, serta menjaga kelestarian lingkungan. Website ini hadir sebagai sarana informasi resmi bagi masyarakat desa maupun pengunjung.</p>
+        
       </div>
     </div>
   </section>
-
   <section id="statistik">
     <div class="section-title">
       <h3>Statistik Desa</h3>
@@ -347,10 +344,6 @@ function fmt(int $n): string
       <div class="card">
         <h4>Jumlah Penduduk</h4>
         <p><strong><?= fmt($total_penduduk) ?> Jiwa</strong></p>
-      </div>
-      <div class="card">
-        <h4>Luas Wilayah</h4>
-        <p><strong><?= htmlspecialchars($luas_wilayah) ?></strong></p>
       </div>
       <div class="card">
         <h4>Jumlah RT</h4>
@@ -369,6 +362,7 @@ function fmt(int $n): string
         <p><strong><?= fmt($total_tidak_tetap) ?> Jiwa</strong></p>
       </div>
     </div>
+
     <div class="chart-group-title">Gambaran Umum Penduduk</div>
     <div class="chart-grid">
       <div class="chart-card">
@@ -385,6 +379,7 @@ function fmt(int $n): string
         </div>
       </div>
     </div>
+
     <div class="chart-group-title">Struktur Usia Penduduk</div>
     <div class="chart-grid">
       <div class="chart-card full">
@@ -394,8 +389,9 @@ function fmt(int $n): string
         </div>
       </div>
     </div>
+
     <div class="chart-group-title">Kondisi Sosial &amp; Ekonomi</div>
-    <div class="chart-grid">
+    <div class="chart-grid two-cols">
       <div class="chart-card">
         <h4>Penduduk Berdasarkan Agama</h4>
         <div class="canvas-wrap">
@@ -409,7 +405,9 @@ function fmt(int $n): string
           <canvas id="pendidikanChart" role="img" aria-label="Diagram batang tingkat pendidikan terakhir penduduk, diurutkan dari jenjang terendah ke tertinggi"></canvas>
         </div>
       </div>
+    </div>
 
+    <div class="chart-grid chart-grid-pekerjaan">
       <div class="chart-card full">
         <h4>Penduduk Berdasarkan Pekerjaan</h4>
         <div class="canvas-wrap">
@@ -417,7 +415,6 @@ function fmt(int $n): string
         </div>
       </div>
     </div>
-
 
     <div class="chart-group-title">Wilayah &amp; Analisis Kependudukan</div>
     <div class="chart-grid">
@@ -469,7 +466,7 @@ function fmt(int $n): string
     const pendidikanData = <?= json_encode($pendidikan_data) ?>;
     const dependencyLabels = ['Usia Produktif (15-64 th)', 'Usia Non-Produktif'];
     const dependencyData = [<?= $usia_produktif ?>, <?= $usia_muda + $usia_tua ?>];
-
+    
     new Chart(document.getElementById('genderChart'), {
       type: 'doughnut',
       data: {
@@ -545,8 +542,15 @@ function fmt(int $n): string
       }
     });
 
+    const piramidaMaxValue = Math.max(
+      ...piramidaLakiData.map(v => Math.abs(v)),
+      ...piramidaPerempuanData
+    );
+    const piramidaAxisLimit = Math.ceil(piramidaMaxValue / 5) * 5;
+    
     new Chart(document.getElementById('piramidaChart'), {
       type: 'bar',
+      plugins: [ChartDataLabels],
       data: {
         labels: piramidaKelompokUsia,
         datasets: [
@@ -560,15 +564,33 @@ function fmt(int $n): string
         maintainAspectRatio: false,
         plugins: {
           legend: { position: 'top' },
-          tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${Math.abs(ctx.raw)} jiwa` } }
+          tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${Math.abs(ctx.raw)} jiwa` } },
+          datalabels: {
+            color: '#4a4a4a',
+            font: { size: 10, weight: '600' },
+            formatter: (value) => Math.abs(value) > 0 ? Math.abs(value) : '',
+            anchor: (ctx) => ctx.dataset.data[ctx.dataIndex] < 0 ? 'start' : 'end',
+            align: (ctx) => ctx.dataset.data[ctx.dataIndex] < 0 ? 'start' : 'end',
+            offset: 4
+          }
         },
         scales: {
-          x: { stacked: false, ticks: { color: '#898781', callback: (val) => Math.abs(val) }, grid: { color: '#e1e0d9' } },
-          y: { reverse: true, ticks: { color: '#898781' }, grid: { display: false } }
+          x: {
+            stacked: true,
+            min: -piramidaAxisLimit,
+            max: piramidaAxisLimit,
+            ticks: { color: '#898781', callback: (val) => Math.abs(val) },
+            grid: { color: '#e1e0d9' }
+          },
+          y: {
+            stacked: true,
+            reverse: true,
+            ticks: { color: '#898781' },
+            grid: { display: false }
+          }
         }
       }
     });
-
     new Chart(document.getElementById('agamaChart'), {
       type: 'doughnut',
       data: {

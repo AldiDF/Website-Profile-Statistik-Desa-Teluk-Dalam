@@ -1,6 +1,9 @@
 // ==========================
 // PENGATURAN MENU NAVIGASI MOBILE
 // ==========================
+
+
+
 const navToggleBeranda = document.getElementById("navToggleBeranda");
 const navMenuBeranda = document.getElementById("navMenuBeranda");
 

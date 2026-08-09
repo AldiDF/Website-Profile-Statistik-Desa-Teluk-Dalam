@@ -194,7 +194,7 @@ nav a:hover {
 
 /* --- SECTIONS & CARDS --- */
 section {
-  padding: 60px 8%;
+  padding: 30px 8%;
 }
 
 .section-title {
@@ -282,6 +282,22 @@ section {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1.5rem;
+}
+
+/* Setiap chart-grid yang menyusul chart-grid lain otomatis dapat jarak atas */
+.chart-grid + .chart-grid {
+  margin-top: 1.5rem;
+}
+
+/* Grid 2 kolom tetap (dipakai untuk Agama + Pendidikan) */
+.chart-grid.two-cols {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Jarak khusus sebelum grid Pekerjaan — didefinisikan global,
+   bukan di dalam media query, supaya berlaku juga di desktop */
+.chart-grid-pekerjaan {
+  margin-top: 1.5rem;
 }
 
 .chart-card {
@@ -407,6 +423,14 @@ footer {
     gap: 1rem;
   }
 
+  .chart-grid.two-cols {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-grid-pekerjaan {
+    margin-top: 1rem;
+  }
+
   .chart-card {
     padding: 1rem;
   }
@@ -428,12 +452,20 @@ footer {
     padding: 1.2rem 1rem;
     font-size: 0.85rem;
   }
+  .about .justify {
+  text-align: justify;
+  text-align-last: left;
+}
 }
 
 @media (max-width: 480px) {
   .cards {
     grid-template-columns: 1fr 1fr;
     gap: 0.6rem;
+  }
+
+  .chart-grid + .chart-grid {
+    margin-top: 1rem;
   }
 
   .card h4 {
@@ -611,6 +643,11 @@ body.login-body::after {
   font-size: 0.8rem;
   color: var(--abu-teks);
   text-decoration: none;
+}
+
+.about .justify {
+  text-align: justify;
+  text-align-last: left; /* biar baris terakhir tidak melar rata kanan-kiri */
 }
 
 .back-link:hover {
