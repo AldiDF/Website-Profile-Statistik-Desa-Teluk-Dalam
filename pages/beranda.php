@@ -277,7 +277,6 @@ function fmt(int $n): string
   <link rel="icon" href="../assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
-
 </head>
 
 <body>
@@ -445,6 +444,7 @@ function fmt(int $n): string
     <p>&copy; 2026 Desa Teluk Dalam. Seluruh hak cipta dilindungi.</p>
   </footer>
 
+  <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
   <script src="../scriptss/beranda.js"></script>
 
 <!-- Script untuk konfigurasi Chart.js (Tetap di PHP karena butuh data dinamis) -->
@@ -473,7 +473,7 @@ function fmt(int $n): string
         labels: genderLabels,
         datasets: [{
           data: genderData,
-          backgroundColor: ['#2a78d6', '#e87ba4'],
+          backgroundColor: ['#e87ba4','#2a78d6'],
           borderColor: '#ffffff',
           borderWidth: 2
         }]

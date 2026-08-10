@@ -287,6 +287,53 @@ function excelDateToISO(v) {
     return '';
 }
 
+function deteksiPanjangTidakSesuai(daftarKeluarga) {
+    const nikBermasalah = [];
+    const kkBermasalah = [];
+    const kkSudahDicek = new Set();
+
+    daftarKeluarga.forEach(k => {
+        if (k.nomor_kk && k.nomor_kk.length !== 16 && !kkSudahDicek.has(k.nomor_kk)) {
+            kkBermasalah.push(k.nomor_kk);
+            kkSudahDicek.add(k.nomor_kk);
+        }
+
+        k.anggota.forEach(a => {
+            const nik = (a.nik || '').trim();
+            if (nik !== '' && nik.length !== 16) {
+                nikBermasalah.push(nik);
+            }
+        });
+    });
+
+    return { nikBermasalah, kkBermasalah };
+}
+
+function deteksiDataKosong(daftarKeluarga) {
+    const FIELD_WAJIB = [
+        'nik', 'nama_lengkap', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
+        'agama', 'pekerjaan', 'pendidikan_terakhir', 'kewarganegaraan', 'hubungan_keluarga',
+    ];
+    const kkDenganDataKosong = [];
+    const kkSudahDicek = new Set(); // 1 No. KK cukup dilaporkan sekali, walau anggotanya yang kosong ada beberapa
+
+    daftarKeluarga.forEach(k => {
+        const adaAnggotaKosong = k.anggota.some(a =>
+            FIELD_WAJIB.some(f => !a[f] || a[f].toString().trim() === '')
+        );
+
+        if (adaAnggotaKosong) {
+            const kkTampil = k.nomor_kk !== '' ? k.nomor_kk : '(No. KK kosong)';
+            if (!kkSudahDicek.has(kkTampil)) {
+                kkDenganDataKosong.push(kkTampil);
+                kkSudahDicek.add(kkTampil);
+            }
+        }
+    });
+
+    return kkDenganDataKosong;
+}
+
 let dataKeluargaSiapKirim = [];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -332,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const reader = new FileReader();
-        reader.onload = function(evt) {
+        reader.onload = function (evt) {
             try {
                 const data = new Uint8Array(evt.target.result);
                 const workbook = XLSX.read(data, {
@@ -342,8 +389,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
                 const rows = XLSX.utils.sheet_to_json(sheet, {
                     header: 1,
-                    raw: false,
+                    raw: true,   // ambil nilai MENTAH, bukan teks tampilan yang sudah dibulatkan Excel
                     defval: ''
+                });
+
+                // Sel yang sebenarnya berupa ANGKA (misal NIK/No. KK tersimpan sebagai Number di Excel)
+                // perlu dikonversi manual ke string utuh, supaya tidak lagi memakai notasi ilmiah
+                // dan tidak kehilangan digit apa pun.
+                rows.forEach(row => {
+                    row.forEach((cell, i) => {
+                        if (typeof cell === 'number') {
+                            row[i] = cell.toFixed(0); // "6.40216e+14" (kalau ada) -> "640216080820001" utuh
+                        }
+                    });
                 });
                 dataKeluargaSiapKirim = parseSemuaKK(rows, rtDariFile);
                 tampilkanPreview(dataKeluargaSiapKirim);
@@ -397,7 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const cellC = (rowKK[2] || '').toString();
 
             let nomorKK = '';
-            const mKK = cellA.match(/(\d{10,18})/); 
+            const mKK = cellA.match(/(\d{10,18})/);
             if (mKK) nomorKK = mKK[1];
 
             const alamat = ekstrakAlamat(cellC);
@@ -490,7 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function deteksiKKDuplikat(daftarKeluarga) {
-        const petaKK = {}; 
+        const petaKK = {};
 
         daftarKeluarga.forEach((k, idx) => {
             if (!petaKK[k.nomor_kk]) petaKK[k.nomor_kk] = [];
@@ -504,7 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 duplikat.push({
                     nomor_kk: nomorKK,
                     jumlah_blok: indexList.length,
-                    nomor_urut: indexList.map(i => i + 1), 
+                    nomor_urut: indexList.map(i => i + 1),
                 });
             }
         }
@@ -620,8 +678,39 @@ document.addEventListener('DOMContentLoaded', () => {
 </p>`;
         }
 
+        const { nikBermasalah, kkBermasalah } = deteksiPanjangTidakSesuai(daftarKeluarga);
+        let peringatanPanjang = '';
+        if (nikBermasalah.length > 0 || kkBermasalah.length > 0) {
+            let isiPeringatan = '';
+            if (nikBermasalah.length > 0) {
+                isiPeringatan += `<div class="peringatan-tag-wrap">NIK yang panjangnya bukan 16 digit (${nikBermasalah.length}):<br>
+                    ${nikBermasalah.map(n => `<span class="tag-merah">${n}</span>`).join('')}
+                </div>`;
+            }
+            if (kkBermasalah.length > 0) {
+                isiPeringatan += `<div class="peringatan-tag-wrap">No. KK yang panjangnya bukan 16 digit (${kkBermasalah.length}):<br>
+                    ${kkBermasalah.map(n => `<span class="tag-merah">${n}</span>`).join('')}
+                </div>`;
+            }
+            peringatanPanjang = `<p class="peringatan-panjang">
+    ⚠️ Ditemukan NIK/No. KK yang panjangnya tidak tepat 16 digit. Data ini TETAP akan diimpor,
+    tapi seluruh anggota terkait otomatis ditandai "TIDAK LENGKAP" di database.
+    ${isiPeringatan}
+</p>`;
+        }
+
+        const kkDenganDataKosong = deteksiDataKosong(daftarKeluarga);
+        let peringatanKosong = '';
+        if (kkDenganDataKosong.length > 0) {
+            peringatanKosong = `<p class="peringatan-kosong">
+    ⚠️ Ditemukan ${kkDenganDataKosong.length} KK dengan salah satu data anggotanya (agama, pekerjaan, dll) masih kosong.
+    Data ini TETAP akan diimpor dan ditandai "TIDAK LENGKAP", No. KK yang terdampak:<br>
+    ${kkDenganDataKosong.map(n => `<span class="tag-kuning">${n}</span>`).join('')}
+</p>`;
+        }
+
         previewArea.innerHTML = html +
-            `<details style="margin-top:1rem;"><summary style="cursor:pointer; color:var(--hijau-tua); font-weight:600; font-size:0.88rem;">Lihat detail per anggota (${totalAnggota} orang) — cek hasil parsing sebelum import</summary>${peringatanEnum}${peringatanDuplikat}${peringatanKKDuplikat}${detailHtml}</details>`;
+            `<details style="margin-top:1rem;"><summary style="cursor:pointer; color:var(--hijau-tua); font-weight:600; font-size:0.88rem;">Lihat detail per anggota (${totalAnggota} orang) — cek hasil parsing sebelum import</summary>${peringatanEnum}${peringatanDuplikat}${peringatanKKDuplikat}${peringatanPanjang}${peringatanKosong}${detailHtml}</details>`;
 
         statusMsg.textContent = `Terbaca ${daftarKeluarga.length} KK, total ${totalAnggota} anggota.`;
         statusMsg.className = 'status-msg';

@@ -18,6 +18,45 @@ if (!isset($conn)) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="../styless/import_data.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .peringatan-panjang,
+        .peringatan-kosong {
+            font-size: 0.85rem;
+            margin-top: 0.6rem;
+            line-height: 1.5;
+        }
+
+        .peringatan-panjang {
+            color: #b91c1c;
+        }
+
+        .peringatan-kosong {
+            color: #a16207;
+        }
+
+        .peringatan-tag-wrap {
+            margin-top: 0.4rem;
+        }
+
+        .tag-merah,
+        .tag-kuning {
+            display: inline-block;
+            padding: 0.1rem 0.5rem;
+            border-radius: 4px;
+            margin: 0.15rem 0.2rem 0 0;
+            font-family: monospace;
+        }
+
+        .tag-merah {
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+
+        .tag-kuning {
+            background: #fef9c3;
+            color: #a16207;
+        }
+    </style>
 </head>
 
 <body>

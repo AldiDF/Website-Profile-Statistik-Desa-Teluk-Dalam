@@ -33,6 +33,37 @@ $anggota_kosong = [
 ];
 $anggota_list = [];
 $original_ids = "";
+
+function tentukan_kelengkapan(array $d, bool $kkTidakLengkap = false): string
+{
+    if ($kkTidakLengkap) {
+        return 'TIDAK LENGKAP';
+    }
+
+    $wajib = [
+        'nik',
+        'nama_lengkap',
+        'tempat_lahir',
+        'tanggal_lahir',
+        'jenis_kelamin',
+        'agama',
+        'pekerjaan',
+        'pendidikan_terakhir',
+        'kewarganegaraan',
+        'hubungan_keluarga',
+    ];
+    foreach ($wajib as $f) {
+        if (empty($d[$f])) {
+            return 'TIDAK LENGKAP';
+        }
+    }
+    if (strlen((string) $d['nik']) !== 16) {
+        return 'TIDAK LENGKAP';
+    }
+
+    return 'LENGKAP';
+}
+
 if (isset($_GET['id_keluarga']) && is_numeric($_GET['id_keluarga'])) {
     $mode = "edit";
     $title_page = "Edit Data Keluarga";
@@ -161,6 +192,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'status_penduduk'     => trim($status_penduduks[$i]),
                         'hubungan_keluarga'   => trim($hubungans[$i]),
                     ];
+                    // Hitung DULU sebelum dibandingkan, dan IKUT dimasukkan ke $data_baru
+                    // supaya perbandingan $ada_perubahan juga mendeteksi kalau CUMA status_lengkap
+                    // yang berubah (misal data lama salah tersimpan sebagai TIDAK LENGKAP padahal sebenarnya lengkap).
+                    $data_baru['status_lengkap'] = tentukan_kelengkapan($data_baru);
 
                     $ada_perubahan = true;
                     if ($data_lama !== null) {
