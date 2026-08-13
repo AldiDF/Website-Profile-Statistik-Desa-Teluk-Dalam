@@ -34,10 +34,10 @@ $icon_default = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.or
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Admin - Perangkat Desa Teluk Dalam</title>
-    <link rel="icon" href="../assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
+    <link rel="icon" href="assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="../styless/dashboard.css">
+    <link rel="stylesheet" href="styless/dashboard.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         .struktur-org-container {
@@ -193,7 +193,7 @@ $icon_default = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.or
 
     <nav class="navbar">
         <div class="brand">
-            <img src="../assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam">
+            <img src="assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam">
             <h1>Dashboard Admin - Perangkat Desa Teluk Dalam</h1>
         </div>
 
@@ -204,9 +204,9 @@ $icon_default = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.or
         </div>
 
         <div class="nav-menu" id="navMenu">
-            <a href="dashboard.php">Data Penduduk</a>
-            <a href="struktur_desa.php" class="active">Perangkat Desa</a>
-            <a href="../databases/logout.php">Keluar</a>
+            <a href="dashboard">Data Penduduk</a>
+            <a href="struktur_desa" class="active">Perangkat Desa</a>
+            <a href="databases/logout.php">Keluar</a>
         </div>
     </nav>
 
@@ -228,7 +228,7 @@ $icon_default = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.or
             <div class="table-header">
                 <h2>Bagan Perangkat Desa</h2>
                 <div class="table-actions">
-                    <a href="struktur_detail.php" class="btn-tambah">+ Tambah Perangkat Desa</a>
+                    <a href="struktur_detail" class="btn-tambah">+ Tambah Perangkat Desa</a>
                 </div>
             </div>
 
@@ -243,15 +243,15 @@ $icon_default = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.or
                             <div class="struktur-card kades-card">
                                 <?php
                                 $foto_src = (!empty($kepala_desa['foto']) && file_exists('../databases/photo/' . $kepala_desa['foto']))
-                                    ? '../databases/photo/' . htmlspecialchars($kepala_desa['foto'])
+                                    ? 'databases/photo/' . htmlspecialchars($kepala_desa['foto'])
                                     : $icon_default;
                                 ?>
                                 <img src="<?= $foto_src ?>" alt="Foto <?= htmlspecialchars($kepala_desa['nama_lengkap']) ?>" class="struktur-foto">
                                 <div class="struktur-nama"><?= htmlspecialchars($kepala_desa['nama_lengkap']) ?></div>
                                 <div class="struktur-jabatan"><?= htmlspecialchars($kepala_desa['jabatan']) ?></div>
                                 <div class="struktur-aksi">
-                                    <a href="struktur_detail.php?id=<?= (int) $kepala_desa['id'] ?>" class="btn-edit-struktur">Edit</a>
-                                    <a href="delete_struktur.php?id=<?= (int) $kepala_desa['id'] ?>" class="btn-hapus-struktur"
+                                    <a href="struktur_detail?id=<?= (int) $kepala_desa['id'] ?>" class="btn-edit-struktur">Edit</a>
+                                    <a href="delete_struktur?id=<?= (int) $kepala_desa['id'] ?>" class="btn-hapus-struktur"
                                         onclick="return confirm('Yakin hapus data ini? Foto yang tersimpan juga akan ikut dihapus.');">Hapus</a>
                                 </div>
                             </div>
@@ -265,15 +265,15 @@ $icon_default = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.or
                                 <div class="struktur-card">
                                     <?php
                                     $foto_src = (!empty($s['foto']) && file_exists('../databases/photo/' . $s['foto']))
-                                        ? '../databases/photo/' . htmlspecialchars($s['foto'])
+                                        ? 'databases/photo/' . htmlspecialchars($s['foto'])
                                         : $icon_default;
                                     ?>
                                     <img src="<?= $foto_src ?>" alt="Foto <?= htmlspecialchars($s['nama_lengkap']) ?>" class="struktur-foto">
                                     <div class="struktur-nama"><?= htmlspecialchars($s['nama_lengkap']) ?></div>
                                     <div class="struktur-jabatan"><?= htmlspecialchars($s['jabatan']) ?></div>
                                     <div class="struktur-aksi">
-                                        <a href="struktur_detail.php?id=<?= (int) $s['id'] ?>" class="btn-edit-struktur">Edit</a>
-                                        <a href="delete_struktur.php?id=<?= (int) $s['id'] ?>" class="btn-hapus-struktur"
+                                        <a href="struktur_detail?id=<?= (int) $s['id'] ?>" class="btn-edit-struktur">Edit</a>
+                                        <a href="delete_struktur?id=<?= (int) $s['id'] ?>" class="btn-hapus-struktur"
                                             onclick="return confirm('Yakin hapus data ini? Foto yang tersimpan juga akan ikut dihapus.');">Hapus</a>
                                     </div>
                                 </div>
@@ -288,8 +288,8 @@ $icon_default = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.or
     </div>
 
     <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
-    <script src="../scriptss/leniss.js"></script>
-    <script src="../scriptss/dashboard.js"></script>
+    <script src="scriptss/leniss.js"></script>
+    <script src="scriptss/dashboard.js"></script>
 
 </body>
 

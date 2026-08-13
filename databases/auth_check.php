@@ -4,7 +4,7 @@ require_once __DIR__ . '/session_config.php';
 session_start();
 
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: login.php");
+    header("Location: login");
     exit;
 }
 
@@ -13,7 +13,7 @@ $timeout = 1800;
 if (isset($_SESSION['login_time']) && (time() - $_SESSION['login_time'] > $timeout)) {
     session_unset();
     session_destroy();
-    header("Location: login.php");
+    header("Location: login");
     exit;
 }
 $_SESSION['login_time'] = time();

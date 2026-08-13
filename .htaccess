@@ -1,0 +1,14 @@
+Options -Indexes
+RewriteEngine On
+
+# Tanda kutip WAJIB digunakan karena ada spasi pada nama folder "Profil Statistik Desa"
+RewriteBase "/Profil Statistik Desa/Website-Profile-Statistik-Desa-Teluk-Dalam/"
+
+# 1. Jika yang diakses adalah file/folder asli (seperti CSS, JS, Gambar), tampilkan apa adanya
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# 2. Aturan Inti: Arahkan URL bersih (tanpa folder & tanpa .php) ke folder pages
+# Contoh: /beranda akan memuat file /pages/beranda.php
+RewriteRule ^([^/]+)/?$ pages/$1.php [L]

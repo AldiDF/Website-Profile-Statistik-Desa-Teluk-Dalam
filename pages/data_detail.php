@@ -257,7 +257,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             mysqli_commit($conn);
-            header("Location: dashboard.php?status=sukses");
+            header("Location: dashboard?status=sukses");
             exit;
         } catch (Exception $e) {
             mysqli_rollback($conn);
@@ -438,17 +438,17 @@ function render_anggota_block($a, $nomor)
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $title_page ?></title>
-    <link rel="icon" href="../assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
+    <link rel="icon" href="assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../styless/data_detail.css">
+    <link rel="stylesheet" href="styless/data_detail.css">
 </head>
 
 <body>
 
     <div class="topbar">
-        <img src="../assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam">
+        <img src="assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam">
         <span>Desa Teluk Dalam - Admin</span>
     </div>
 
@@ -500,13 +500,13 @@ function render_anggota_block($a, $nomor)
                 </div>
                 <div class="form-footer">
                     <?php if ($mode === 'edit'): ?>
-                        <a href="delete.php?id_keluarga=<?= htmlspecialchars((string) $id_keluarga) ?>"
+                        <a href="delete?id_keluarga=<?= htmlspecialchars((string) $id_keluarga) ?>"
                             class="btn-hapus-kk"
                             onclick="return confirm('Yakin ingin menghapus seluruh KK ini beserta SEMUA anggotanya? Tindakan ini tidak bisa dibatalkan.')">
                             Hapus KK
                         </a>
                     <?php endif; ?>
-                    <a href="dashboard.php" class="btn-cancel">Batal</a>
+                    <a href="dashboard" class="btn-cancel">Batal</a>
                     <button type="submit" class="btn-save">
                         <?= $mode === 'edit' ? 'Update Data' : 'Konfirmasi Penambahan Data' ?>
                     </button>
@@ -516,8 +516,8 @@ function render_anggota_block($a, $nomor)
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
-    <script src="../scriptss/leniss.js"></script>
-    <script src="../scriptss/data_detail.js"></script>
+    <script src="scriptss/leniss.js"></script>
+    <script src="scriptss/data_detail.js"></script>
 
 </body>
 

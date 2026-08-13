@@ -16,7 +16,7 @@ if (!isset($conn)) {
     <link rel="icon" href="../assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="../styless/import_data.css">
+    <link rel="stylesheet" href="styless/import_data.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         .peringatan-panjang,
@@ -62,7 +62,7 @@ if (!isset($conn)) {
 <body>
 
     <div class="topbar">
-        <img src="../assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo">
+        <img src="assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo">
         <span>Import Massal Data Kependudukan</span>
     </div>
 
@@ -95,13 +95,13 @@ if (!isset($conn)) {
             <ul class="gagal-list" id="gagalList"></ul>
         </div>
 
-        <a href="dashboard.php" class="btn-kembali">&larr; Kembali ke Dashboard</a>
+        <a href="dashboard" class="btn-kembali">&larr; Kembali ke Dashboard</a>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
-    <script src="../scriptss/leniss.js"></script>
-    <script src="../scriptss/import_data.js"></script>
+    <script src="scriptss/leniss.js"></script>
+    <script src="scriptss/import_data.js"></script>
 
 </body>
 

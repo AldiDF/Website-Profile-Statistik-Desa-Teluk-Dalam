@@ -368,7 +368,7 @@ $icon_default = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.or
 function render_org_card($person, $icon_default, $is_kades = false)
 {
   if (!$person) return '';
-  $foto = (!empty($person['foto']) && file_exists('../databases/photo/' . $person['foto'])) ? '../databases/photo/' . htmlspecialchars($person['foto']) : $icon_default;
+  $foto = (!empty($person['foto']) && file_exists('../databases/photo/' . $person['foto'])) ? 'databases/photo/' . htmlspecialchars($person['foto']) : $icon_default;
   $nama = htmlspecialchars($person['nama_lengkap']);
   $jab = htmlspecialchars($person['jabatan']);
   $kades_class = $is_kades ? ' kades-card' : '';
@@ -393,8 +393,8 @@ function render_org_card($person, $icon_default, $is_kades = false)
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../styless/beranda.css">
-  <link rel="icon" href="../assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
+  <link rel="stylesheet" href="styless/beranda.css">
+  <link rel="icon" href="assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
@@ -1220,7 +1220,7 @@ function render_org_card($person, $icon_default, $is_kades = false)
   <header>
     <nav>
       <div class="brand">
-        <img src="../assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam" style="background-color: transparent;">
+        <img src="assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam" style="background-color: transparent;">
         <h1>Desa Teluk Dalam</h1>
       </div>
       <button class="nav-toggle-mobile" id="navToggleBeranda" aria-label="Buka menu" type="button">&#9776;</button>
@@ -1228,17 +1228,17 @@ function render_org_card($person, $icon_default, $is_kades = false)
         <li><a href="#beranda">Beranda</a></li>
         <li><a href="#profil">Profil Desa</a></li>
         <li><a href="#statistik">Statistik Desa</a></li>
-        <li><a href="login.php">Masuk</a></li>
+        <li><a href="login">Masuk</a></li>
       </ul>
     </nav>
   </header>
 
   <section class="hero" id="beranda">
     <div class="hero-slider" id="heroSlider">
-      <img src="../assets/teas.jpeg" alt="Suasana Desa Teluk Dalam 1" class="hero-slide active">
-      <img src="../assets/dermaga_teluk dalam.jpg" alt="Suasana Desa Teluk Dalam 2" class="hero-slide" loading="lazy">
-      <img src="../assets/sekolah_unmul_kkn_52.jpg" alt="Suasana Desa Teluk Dalam 3" class="hero-slide" loading="lazy">
-      <img src="../assets/Kantor_Desa_Teluk_Dalam,_Kutai_Kartanegara.jpg" alt="Suasana Desa Teluk Dalam 4" class="hero-slide" loading="lazy">
+      <img src="assets/teas.jpeg" alt="Suasana Desa Teluk Dalam 1" class="hero-slide active">
+      <img src="assets/dermaga_teluk dalam.jpg" alt="Suasana Desa Teluk Dalam 2" class="hero-slide" loading="lazy">
+      <img src="assets/sekolah_unmul_kkn_52.jpg" alt="Suasana Desa Teluk Dalam 3" class="hero-slide" loading="lazy">
+      <img src="assets/Kantor_Desa_Teluk_Dalam,_Kutai_Kartanegara.jpg" alt="Suasana Desa Teluk Dalam 4" class="hero-slide" loading="lazy">
     </div>
     <div class="hero-overlay"></div>
     <div class="hero-content" id="heroContent">
@@ -1256,7 +1256,7 @@ function render_org_card($person, $icon_default, $is_kades = false)
     <div class="chart-group-title">Tentang Desa Teluk Dalam</div>
 
     <div class="about">
-      <img src="../assets/Kantor_Desa_Teluk_Dalam,_Kutai_Kartanegara.jpg" alt="" class="profil-img">
+      <img src="assets/Kantor_Desa_Teluk_Dalam,_Kutai_Kartanegara.jpg" alt="" class="profil-img">
       <div>
         <h3>Tentang Desa Teluk Dalam</h3>
         <p class="justify">Desa Teluk Dalam adalah desa yang memiliki kekayaan alam, budaya, dan sumber daya masyarakat yang unggul. Pemerintah desa berkomitmen untuk memberikan pelayanan terbaik, meningkatkan kesejahteraan warga, serta menjaga kelestarian lingkungan. Website ini hadir sebagai sarana informasi resmi bagi masyarakat desa maupun pengunjung.</p>
@@ -1270,7 +1270,7 @@ function render_org_card($person, $icon_default, $is_kades = false)
         <p class="justify">Desa Teluk Dalam memiliki sejarah panjang yang kaya akan tradisi dan budaya lokal. Berdiri sejak abad ke-19, desa ini telah menjadi pusat kegiatan masyarakat setempat. Seiring waktu, Desa Teluk Dalam berkembang menjadi komunitas yang mandiri dengan berbagai potensi ekonomi dan sosial.</p>
         <p class="justify">Dalam beberapa dekade terakhir, Desa Teluk Dalam telah mengalami perkembangan signifikan dalam bidang pendidikan, kesehatan, dan infrastruktur. Pemerintah desa terus berupaya meningkatkan kualitas hidup warga melalui program-program pembangunan yang berkelanjutan.</p>
       </div>
-      <img src="../assets/dermaga_teluk dalam.jpg" alt="Sejarah dan Perkembangan Desa Teluk Dalam" class="profil-img">
+      <img src="assets/dermaga_teluk dalam.jpg" alt="Sejarah dan Perkembangan Desa Teluk Dalam" class="profil-img">
     </div>
 
     <div class="chart-group-title">Visi Misi Desa Teluk Dalam</div>
@@ -1511,7 +1511,7 @@ function render_org_card($person, $icon_default, $is_kades = false)
 
       <div class="footer-col footer-brand">
         <div class="footer-brand-head">
-          <img src="../assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Lambang Desa Teluk Dalam" style="width: 150px; height: 150px; background-color: transparent;">
+          <img src="assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Lambang Desa Teluk Dalam" style="width: 150px; height: 150px; background-color: transparent;">
           <span>
             <p style="font-size: 20px;">Pemerintah Desa<br>Teluk Dalam</p>
           </span>
@@ -1536,13 +1536,14 @@ function render_org_card($person, $icon_default, $is_kades = false)
         <ul class="footer-list">
           <li><a href="tel:+62541123456"><i class="fa-solid fa-phone"></i> (0541) 123456</a></li>
           <li><a href="tel:+6281234567890"><i class="fa-solid fa-phone"></i> [GANTI NOMOR KE-2]</a></li>
-          <li><a href="mailto:info@desatelukdalam.id"><i class="fa-solid fa-envelope"></i> info@desatelukdalam.id</a></li>
+          <li><a href="https://mail.google.com/mail/u/0/?tab=rm&ogbl#inbox?compose=DmwnWsCcLdmcWmTsgvsnCKVkbsPqpzCJQcxtftdDjzntkFdNFltKNkjGzfhgBhWNFXxhCCNKJXkV" target="_blank" rel="noopener" aria-label="Email Desa Teluk Dalam">
+              <i class="fa-solid fa-envelope"></i> kkn52telukdalam@gmail.com</a></li>
         </ul>
         <div class="footer-social">
-          <a href="https://instagram.com/[GANTI USERNAME]" target="_blank" rel="noopener" aria-label="Instagram Desa Teluk Dalam">
+          <a href="https://www.instagram.com/kkn52_telukdalam?igsh=dmdnMThvbjRuMm9p" target="_blank" rel="noopener" aria-label="Instagram Desa Teluk Dalam">
             <i class="fa-brands fa-instagram"></i>
           </a>
-          <a href="https://tiktok.com/@[GANTI USERNAME]" target="_blank" rel="noopener" aria-label="TikTok Desa Teluk Dalam">
+          <a href="https://www.tiktok.com/@kkn52_telukdalam?_r=1&_t=ZS-98q7mzQsdVa" target="_blank" rel="noopener" aria-label="TikTok Desa Teluk Dalam">
             <i class="fa-brands fa-tiktok"></i>
           </a>
         </div>
@@ -1570,8 +1571,8 @@ function render_org_card($person, $icon_default, $is_kades = false)
   </footer>
 
   <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
-  <script src="../scriptss/leniss.js"></script>
-  <script src="../scriptss/beranda.js"></script>
+  <script src="scriptss/leniss.js"></script>
+  <script src="scriptss/beranda.js"></script>
 
   <!-- Script untuk konfigurasi Chart.js (Tetap di PHP karena butuh data dinamis) -->
   <script>

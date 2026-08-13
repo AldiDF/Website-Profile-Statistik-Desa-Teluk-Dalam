@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$locked_out) {
 
             unset($_SESSION['login_attempts']);
 
-            header("Location: dashboard.php");
+            header("Location: dashboard");
             exit;
         } else {
             $_SESSION['login_attempts']++;
@@ -60,18 +60,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$locked_out) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Desa Teluk Dalam</title>
-    <link rel="icon" href="../assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
+    <link rel="icon" href="assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../styless/beranda.css">
+    <link rel="stylesheet" href="styless/beranda.css">
 
 </head>
 
 <body class="login-body">
     <div class="login-box">
         <div class="brand">
-            <img src="../assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam" style="width: 70px; height: 70px; object-fit: contain;">
+            <img src="assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam" style="width: 70px; height: 70px; object-fit: contain;">
             <h2>Desa Teluk Dalam</h2>
             <span>Portal Admin</span>
         </div>
@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$locked_out) {
             <button type="submit" class="btn-login" <?= $locked_out ? 'disabled' : '' ?>>Masuk</button>
         </form>
 
-        <a href="beranda.php" class="back-link">&larr; Kembali ke Beranda</a>
+        <a href="beranda" class="back-link">&larr; Kembali ke Beranda</a>
     </div>
 </body>
 

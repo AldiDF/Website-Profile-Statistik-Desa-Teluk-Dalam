@@ -167,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $error = "Gagal memperbarui data struktur desa.";
                         } else {
                             mysqli_stmt_close($stmt);
-                            header("Location: struktur_desa.php?status=sukses");
+                            header("Location: struktur_desa?status=sukses");
                             exit;
                         }
                     }
@@ -177,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $error = "Gagal menyimpan data struktur desa baru.";
                     } else {
                         mysqli_stmt_close($stmt);
-                        header("Location: struktur_desa.php?status=sukses");
+                        header("Location: struktur_desa?status=sukses");
                         exit;
                     }
                 }
@@ -193,11 +193,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $title_page ?> - Desa Teluk Dalam</title>
-    <link rel="icon" href="../assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
+    <link rel="icon" href="assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="../styless/dashboard.css">
-    <link rel="stylesheet" href="../styless/data_detail.css">
+    <link rel="stylesheet" href="styless/dashboard.css">
+    <link rel="stylesheet" href="styless/data_detail.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -354,7 +354,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 
     <div class="topbar">
-        <img src="../assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam">
+        <img src="assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam">
         <span>Desa Teluk Dalam - Admin</span>
     </div>
 
@@ -382,9 +382,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Icon SVG Base64 untuk "Unggah Gambar"
                 $icon_unggah = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'%3E%3C/circle%3E%3Cpolyline points='21 15 16 10 5 21'%3E%3C/polyline%3E%3C/svg%3E";
 
-                $ada_foto = (!empty($data['foto']) && file_exists('../assets/struktur/' . $data['foto']));
-                $foto_preview_src = $ada_foto ? '../assets/struktur/' . htmlspecialchars($data['foto']) : $icon_unggah;
-                ?>
+                $ada_foto = (!empty($data['foto']) && file_exists('../databases/photo/' . $data['foto']));
+                $foto_preview_src = $ada_foto ? 'databases/photo/' . htmlspecialchars($data['foto']) : $icon_unggah;
+                ?>  
                 <div class="drop-zone" id="dropZoneFoto">
                     <img src="<?= $foto_preview_src ?>" alt="Preview Foto" class="foto-preview <?= $ada_foto ? '' : 'is-placeholder' ?>" id="fotoPreview">
                     <div class="drop-zone-text" id="dropZoneText">
@@ -434,7 +434,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <div class="form-footer">
-                <a href="struktur_desa.php" class="btn-cancel">Batal</a>
+                <a href="struktur_desa" class="btn-cancel">Batal</a>
                 <button type="submit" class="btn-save">
                     <?= $mode === 'edit' ? 'Update Data' : 'Simpan Data' ?>
                 </button>

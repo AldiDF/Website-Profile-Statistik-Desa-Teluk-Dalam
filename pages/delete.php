@@ -6,7 +6,7 @@ if (!isset($conn)) {
     die("Koneksi database tidak tersedia.");
 }
 if (!isset($_GET['id_keluarga']) || !is_numeric($_GET['id_keluarga'])) {
-    header("Location: dashboard.php");
+    header("Location: dashboard");
     exit;
 }
 $id_keluarga = (int) $_GET['id_keluarga'];
@@ -24,7 +24,7 @@ try {
     }
     mysqli_stmt_close($stmtKeluarga);
     mysqli_commit($conn);
-    header("Location: dashboard.php?status=hapus_kk");
+    header("Location: dashboard?status=hapus_kk");
     exit;
 } catch (Exception $e) {
     mysqli_rollback($conn);

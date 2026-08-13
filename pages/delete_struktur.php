@@ -11,7 +11,7 @@ if (!isset($conn)) {
 $id = isset($_GET['id']) && is_numeric($_GET['id']) ? (int) $_GET['id'] : null;
 
 if ($id === null) {
-    header("Location: struktur_desa.php");
+    header("Location: struktur_desa");
     exit;
 }
 
@@ -27,9 +27,9 @@ if ($row !== null) {
     mysqli_stmt_execute($stmt);
     mysqli_stmt_close($stmt);
 
-    header("Location: struktur_desa.php?status=hapus");
+    header("Location: struktur_desa?status=hapus");
     exit;
 }
 
-header("Location: struktur_desa.php");
+header("Location: struktur_desa");
 exit;

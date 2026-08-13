@@ -52,7 +52,7 @@ function initDashboard(config) {
         loadMoreBtn.textContent = 'Memuat...';
 
         try {
-            const res = await fetch('dashboard_load.php?' + qs);
+            const res = await fetch('dashboard_load?' + qs);
             const data = await res.json();
 
             if (myToken !== searchToken) return;

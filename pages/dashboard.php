@@ -56,10 +56,10 @@ $grouped = group_by_kk($data_penduduk);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Admin - Kependudukan Desa Teluk Dalam</title>
-    <link rel="icon" href="../assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
+    <link rel="icon" href="assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="../styless/dashboard.css">
+    <link rel="stylesheet" href="styless/dashboard.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
@@ -67,7 +67,7 @@ $grouped = group_by_kk($data_penduduk);
 
     <nav class="navbar">
         <div class="brand">
-            <img src="../assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam">
+            <img src="assets/Lambang_Kab._Kutai_Kertanegara.png" alt="Logo Desa Teluk Dalam">
             <h1>Dashboard Admin - Kependudukan Teluk Dalam</h1>
         </div>
 
@@ -78,9 +78,9 @@ $grouped = group_by_kk($data_penduduk);
         </div>
 
         <div class="nav-menu" id="navMenu">
-            <a href="dashboard.php" class="active">Data Penduduk</a>
-            <a href="struktur_desa.php">Perangkat Desa</a>
-            <a href="../databases/logout.php">Keluar</a>
+            <a href="dashboard" class="active">Data Penduduk</a>
+            <a href="struktur_desa">Perangkat Desa</a>
+            <a href="databases/logout.php">Keluar</a>
         </div>
     </nav>
 
@@ -120,9 +120,9 @@ $grouped = group_by_kk($data_penduduk);
 
         <!-- FILTER RT -->
         <div class="rt-filter">
-            <a href="dashboard.php<?= $status_penduduk_filter !== "" ? "?status_penduduk=" . urlencode($status_penduduk_filter) : "" ?>" class="<?= $rt_filter === "" ? "active" : "" ?>">Semua RT</a>
+            <a href="dashboard<?= $status_penduduk_filter !== "" ? "?status_penduduk=" . urlencode($status_penduduk_filter) : "" ?>" class="<?= $rt_filter === "" ? "active" : "" ?>">Semua RT</a>
             <?php foreach ($daftar_rt as $rtValue): ?>
-                <a href="dashboard.php?rt=<?= $rtValue ?><?= $status_penduduk_filter !== "" ? "&status_penduduk=" . urlencode($status_penduduk_filter) : "" ?>"
+                <a href="dashboard?rt=<?= $rtValue ?><?= $status_penduduk_filter !== "" ? "&status_penduduk=" . urlencode($status_penduduk_filter) : "" ?>"
                     class="<?= ($rt_filter !== "" && (int) $rt_filter === $rtValue) ? "active" : "" ?>">
                     RT <?= $rtValue ?>
                 </a>
@@ -131,14 +131,14 @@ $grouped = group_by_kk($data_penduduk);
 
         <!-- FILTER STATUS PENDUDUK (TETAP / TIDAK TETAP) -->
         <div class="rt-filter">
-            <a href="dashboard.php<?= $rt_filter !== "" ? "?rt=" . urlencode($rt_filter) : "" ?>" class="<?= $status_penduduk_filter === "" ? "active" : "" ?>">Semua Status</a>
-            <a href="dashboard.php?status_penduduk=PERMANEN<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>" class="<?= $status_penduduk_filter === "PERMANEN" ? "active" : "" ?>">Penduduk Tetap</a>
-            <a href="dashboard.php?status_penduduk=NON+PERMANEN<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>" class="<?= $status_penduduk_filter === "NON PERMANEN" ? "active" : "" ?>">Penduduk Tidak Tetap</a>
-            <a href="dashboard.php?status_penduduk=MENINGGAL<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>"
+            <a href="dashboard<?= $rt_filter !== "" ? "?rt=" . urlencode($rt_filter) : "" ?>" class="<?= $status_penduduk_filter === "" ? "active" : "" ?>">Semua Status</a>
+            <a href="dashboard?status_penduduk=PERMANEN<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>" class="<?= $status_penduduk_filter === "PERMANEN" ? "active" : "" ?>">Penduduk Tetap</a>
+            <a href="dashboard?status_penduduk=NON+PERMANEN<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>" class="<?= $status_penduduk_filter === "NON PERMANEN" ? "active" : "" ?>">Penduduk Tidak Tetap</a>
+            <a href="dashboard?status_penduduk=MENINGGAL<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>"
                 class="<?= $status_penduduk_filter === "MENINGGAL" ? "active" : "" ?>">
                 Meninggal
             </a>
-            <a href="dashboard.php?status_penduduk=TIDAK+LENGKAP<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>"
+            <a href="dashboard?status_penduduk=TIDAK+LENGKAP<?= $rt_filter !== "" ? "&rt=" . urlencode($rt_filter) : "" ?>"
                 class="<?= $status_penduduk_filter === "TIDAK LENGKAP" ? "active" : "" ?>">
                 Data Tidak Lengkap
             </a>
@@ -158,8 +158,8 @@ $grouped = group_by_kk($data_penduduk);
                                                                                         ?></h2>
                 <div class="table-actions">
                     <input type="text" id="searchInput" class="search-box" placeholder="Cari NIK, nama, alamat, dll...">
-                    <a href="import_massal.php" class="btn btn-import">📥 Import Massal</a>
-                    <a href="data_detail.php" class="btn-tambah">+ Tambah Data</a>
+                    <a href="import_massal" class="btn btn-import">📥 Import Massal</a>
+                    <a href="data_detail" class="btn-tambah">+ Tambah Data</a>
                 </div>
             </div>
 
@@ -195,8 +195,8 @@ $grouped = group_by_kk($data_penduduk);
     </div>
     
     <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
-    <script src="../scriptss/leniss.js"></script>
-    <script src="../scriptss/dashboard.js"></script>
+    <script src="scriptss/leniss.js"></script>
+    <script src="scriptss/dashboard.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {

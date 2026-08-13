@@ -278,7 +278,7 @@ function render_grup_html(array $grouped)
         $html .= '<span class="kk-tag">No. KK: ' . htmlspecialchars($kel['nomor_kk'] ?? '-') . '</span>';
         $html .= '<span class="rt-tag">RT ' . htmlspecialchars($kel['rt'] ?? '-') . '</span>';
         $html .= 'Alamat: ' . htmlspecialchars($kel['alamat_domisili'] ?? '-');
-        $html .= '<a class="btn-edit-kk" href="data_detail.php?id_keluarga=' . urlencode($kel['id_keluarga'] ?? '') . '">Edit</a>';
+        $html .= '<a class="btn-edit-kk" href="data_detail?id_keluarga=' . urlencode($kel['id_keluarga'] ?? '') . '">Edit</a>';
         $html .= '</th></tr>';
 
         foreach ($kel['anggota'] as $i => $p) {
