@@ -91,4 +91,28 @@ function ambil_data_penduduk($conn, $id, $form_data_penduduk) {
     return $form_data_penduduk;
 }
 
+function ambil_semua_struktur_desa($conn)
+{
+    $result = mysqli_query($conn, "SELECT * FROM struktur_desa ORDER BY id ASC");
+    $data = [];
+    if ($result) {
+        while ($row = mysqli_fetch_assoc($result)) {
+            $data[] = $row;
+        }
+        mysqli_free_result($result);
+    }
+    return $data;
+}
+
+function ambil_struktur_desa_by_id($conn, int $id)
+{
+    $stmt = mysqli_prepare($conn, "SELECT * FROM struktur_desa WHERE id = ?");
+    mysqli_stmt_bind_param($stmt, "i", $id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($result);
+    mysqli_stmt_close($stmt);
+    return $row ?: null;
+}
+
 ?>

@@ -55,7 +55,7 @@ $grouped = group_by_kk($data_penduduk);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Admin - Desa Teluk Dalam</title>
+    <title>Dashboard Admin - Kependudukan Desa Teluk Dalam</title>
     <link rel="icon" href="../assets/Lambang_Kab._Kutai_Kertanegara.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -79,6 +79,7 @@ $grouped = group_by_kk($data_penduduk);
 
         <div class="nav-menu" id="navMenu">
             <a href="dashboard.php" class="active">Data Penduduk</a>
+            <a href="struktur_desa.php">Perangkat Desa</a>
             <a href="../databases/logout.php">Keluar</a>
         </div>
     </nav>
@@ -162,7 +163,7 @@ $grouped = group_by_kk($data_penduduk);
                 </div>
             </div>
 
-            <div class="table-wrapper">
+            <div class="table-wrapper" data-lenis-prevent>
                 <table id="dataTable">
                     <thead>
                         <tr>
@@ -192,7 +193,9 @@ $grouped = group_by_kk($data_penduduk);
         </div>
 
     </div>
-
+    
+    <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+    <script src="../scriptss/leniss.js"></script>
     <script src="../scriptss/dashboard.js"></script>
 
     <script>

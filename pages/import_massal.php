@@ -99,6 +99,8 @@ if (!isset($conn)) {
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+    <script src="../scriptss/leniss.js"></script>
     <script src="../scriptss/import_data.js"></script>
 
 </body>

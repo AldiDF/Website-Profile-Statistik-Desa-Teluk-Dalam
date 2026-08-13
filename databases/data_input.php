@@ -128,3 +128,24 @@ function hapus_data_keluarga($conn, int $id_keluarga)
     mysqli_stmt_bind_param($stmt, "i", $id_keluarga);
     return $stmt;
 }
+
+function tambah_struktur_desa($conn, string $nama_lengkap, string $jabatan, ?string $foto)
+{
+    $stmt = mysqli_prepare($conn, "INSERT INTO struktur_desa (nama_lengkap, jabatan, foto) VALUES (?, ?, ?)");
+    mysqli_stmt_bind_param($stmt, "sss", $nama_lengkap, $jabatan, $foto);
+    return $stmt;
+}
+
+function edit_struktur_desa($conn, string $nama_lengkap, string $jabatan, ?string $foto, int $id)
+{
+    $stmt = mysqli_prepare($conn, "UPDATE struktur_desa SET nama_lengkap = ?, jabatan = ?, foto = ? WHERE id = ?");
+    mysqli_stmt_bind_param($stmt, "sssi", $nama_lengkap, $jabatan, $foto, $id);
+    return $stmt;
+}
+
+function hapus_struktur_desa($conn, int $id)
+{
+    $stmt = mysqli_prepare($conn, "DELETE FROM struktur_desa WHERE id = ?");
+    mysqli_stmt_bind_param($stmt, "i", $id);
+    return $stmt;
+}

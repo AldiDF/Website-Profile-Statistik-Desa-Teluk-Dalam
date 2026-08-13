@@ -174,18 +174,101 @@ nav a:hover {
   transform: scale(1.15);
 }
 
+/* --- DESAIN TOMBOL BARU (.btn) --- */
 .btn {
-  display: inline-block;
+  margin-top: 20px;
+  min-width: 200px;
+  min-height: 50px;
+  display: inline-flex;
+  font-family: 'Poppins', sans-serif;
+  font-size: 16px;
+  /* Ukuran teks disesuaikan sedikit agar lebih proporsional */
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+  text-align: center;
+  letter-spacing: 1.3px;
+  font-weight: 700;
+  color: #0f4c3a;
+  /* Warna teks menyesuaikan tema (hijau tua) */
+
+  /* Gradien menggunakan warna kuning asli (#f4b400) ke kuning yang sedikit lebih muda */
   background: #f4b400;
-  color: #000;
-  padding: 12px 24px;
-  border-radius: 8px;
+  background: linear-gradient(90deg, #f7c942 0%, #f4b400 100%);
+
+  border: none;
+  border-radius: 1000px;
+  box-shadow: 12px 12px 24px rgba(244, 180, 0, 0.4);
+  /* Bayangan kuning */
+  transition: all 0.3s ease-in-out 0s;
+  cursor: pointer;
+  outline: none;
+  position: relative;
+  padding: 10px 24px;
   text-decoration: none;
-  font-weight: 600;
 }
 
+/* Border tambahan yang muncul saat di-hover */
+.btn::before {
+  content: '';
+  border-radius: 1000px;
+  min-width: calc(100% + 12px);
+  min-height: calc(100% + 12px);
+  border: 4px solid #f4b400;
+  /* Border kuning */
+  box-shadow: 0 0 40px rgba(244, 180, 0, 0.5);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: all .3s ease-in-out 0s;
+}
+
+/* Reaksi HANYA saat tombol di-hover (dilewati kursor) */
 .btn:hover {
-  background: #d99d00;
+  color: #0f4c3a;
+  transform: translateY(-6px);
+}
+
+.btn:hover::before {
+  opacity: 1;
+}
+
+/* Menyembunyikan cincin animasi HANYA saat kursor berada di atas tombol */
+.btn:hover::after {
+  animation: none;
+  display: none;
+}
+
+/* Animasi cincin pendar (ring) di latar belakang tombol */
+.btn::after {
+  content: '';
+  width: 30px;
+  height: 30px;
+  border-radius: 100%;
+  border: 6px solid #f4b400;
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: ring 1.5s infinite;
+}
+
+
+@keyframes ring {
+  0% {
+    width: 30px;
+    height: 30px;
+    opacity: 1;
+  }
+
+  100% {
+    width: 250px;
+    height: 250px;
+    opacity: 0;
+  }
 }
 
 /* --- SECTIONS & CARDS --- */
@@ -217,6 +300,14 @@ section {
   border-radius: 12px;
   text-align: center;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  /* Tambahkan baris ini */
+}
+
+/* Tambahkan blok ini tepat di bawah .card */
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
 }
 
 .card h4 {
@@ -281,7 +372,7 @@ section {
 }
 
 /* Setiap chart-grid yang menyusul chart-grid lain otomatis dapat jarak atas */
-.chart-grid + .chart-grid {
+.chart-grid+.chart-grid {
   margin-top: 1.5rem;
 }
 
@@ -303,6 +394,14 @@ section {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  /* Tambahkan baris ini */
+}
+
+/* Tambahkan blok ini tepat di bawah .chart-card */
+.chart-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
 }
 
 .chart-card.full {
@@ -448,10 +547,11 @@ footer {
     padding: 1.2rem 1rem;
     font-size: 0.85rem;
   }
+
   .about .justify {
-  text-align: justify;
-  text-align-last: left;
-}
+    text-align: justify;
+    text-align-last: left;
+  }
 }
 
 @media (max-width: 480px) {
@@ -460,7 +560,7 @@ footer {
     gap: 0.6rem;
   }
 
-  .chart-grid + .chart-grid {
+  .chart-grid+.chart-grid {
     margin-top: 1rem;
   }
 
@@ -643,7 +743,8 @@ body.login-body::after {
 
 .about .justify {
   text-align: justify;
-  text-align-last: left; /* biar baris terakhir tidak melar rata kanan-kiri */
+  text-align-last: left;
+  /* biar baris terakhir tidak melar rata kanan-kiri */
 }
 
 .back-link:hover {

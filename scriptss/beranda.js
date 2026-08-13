@@ -1,23 +1,6 @@
 // ==========================
-// LENIS - SMOOTH SCROLL
-// ==========================
-const lenis = new Lenis({
-    duration: 1.2,
-    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-    smoothWheel: true,   // <-- ini yang mengaktifkan smooth untuk scroll manual (mouse wheel)
-    touchMultiplier: 1.5,
-});
-
-function raf(time) {
-    lenis.raf(time);
-    requestAnimationFrame(raf);
-}
-requestAnimationFrame(raf);
-
-// ==========================
 // PENGATURAN MENU NAVIGASI MOBILE
 // ==========================
-
 
 
 const navToggleBeranda = document.getElementById("navToggleBeranda");
@@ -104,7 +87,7 @@ document.addEventListener("DOMContentLoaded", function () {
 // SMOOTH SCROLL SAAT KLIK MENU
 // ==========================
 const navLinksScroll = document.querySelectorAll(
-    '#navMenuBeranda a[href^="#"]',
+    '#navMenuBeranda a[href^="#"], #viewProfileBtn[href^="#"], .footer-list a[href^="#"]',
 );
 
 navLinksScroll.forEach((link) => {
@@ -114,10 +97,10 @@ navLinksScroll.forEach((link) => {
         if (targetEl) {
             e.preventDefault();
             lenis.scrollTo(targetEl, {
-                offset: -90,   // kompensasi tinggi navbar fixed, sesuaikan kalau navbar Anda beda tinggi
+                offset: -90,
                 duration: 1.2,
             });
-            history.pushState(null, "", targetId); // update URL tanpa reload
+            history.pushState(null, "", targetId);
         }
     });
 });
