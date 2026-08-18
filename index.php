@@ -1,4 +1,4 @@
 <?php
-  header("Location: pages/beranda.php");
+  header("Location: beranda");
   exit();
 ?>

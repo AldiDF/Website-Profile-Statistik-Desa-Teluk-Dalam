@@ -735,7 +735,7 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMsg.textContent = '';
 
             try {
-                const res = await fetch('import_proses.php', {
+                const res = await fetch('import_proses', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

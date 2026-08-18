@@ -313,74 +313,29 @@ function fmt(int $n): string
 }
 
 // ==========================
-// PENGAMBILAN DATA STRUKTUR DESA
+// PROFIL DESA: Visi, Misi, & Bagan Struktur Organisasi (dari halaman admin profile.php)
 // ==========================
-$struktur_desa = [];
-$q_struktur = mysqli_query($conn, "SELECT * FROM struktur_desa ORDER BY id ASC");
-if ($q_struktur) {
-  while ($row = mysqli_fetch_assoc($q_struktur)) {
-    $struktur_desa[] = $row;
+$profil_visi      = '';
+$profil_misi_list = [];
+$profil_bagan     = '';
+
+$qProfil = mysqli_query($conn, "SELECT visi, misi, bagan_gambar FROM profil_desa WHERE id = 1 LIMIT 1");
+if ($qProfil && mysqli_num_rows($qProfil) > 0) {
+  $rowProfil = mysqli_fetch_assoc($qProfil);
+
+  $profil_visi = trim((string) $rowProfil['visi']);
+
+  $misi_raw = trim((string) $rowProfil['misi']);
+  if ($misi_raw !== '') {
+    $profil_misi_list = array_values(array_filter(
+      array_map('trim', explode("\n", str_replace("\r\n", "\n", $misi_raw))),
+      fn($baris) => $baris !== ''
+    ));
   }
+
+  $profil_bagan = trim((string) ($rowProfil['bagan_gambar'] ?? ''));
 }
 
-$kades = null;
-$sekdes = null;
-$kaur = [];
-$kasi = [];
-$lainnya = [];
-
-foreach ($struktur_desa as $s) {
-  $jabatan = strtoupper(trim($s['jabatan']));
-  if ($jabatan === 'KEPALA DESA') {
-    $kades = $s;
-  } elseif ($jabatan === 'SEKRETARIS DESA') {
-    $sekdes = $s;
-  } elseif (strpos($jabatan, 'KAUR') !== false) {
-    $kaur[] = $s;
-  } elseif (strpos($jabatan, 'KASI') !== false) {
-    $kasi[] = $s;
-  } else {
-    $lainnya[] = $s;
-  }
-}
-
-// ==========================
-// CEK KELENGKAPAN JABATAN INTI - bagan HANYA ditampilkan kalau semua
-// 8 jabatan wajib berikut sudah terisi datanya
-// ==========================
-$jabatan_wajib = [
-  'KEPALA DESA',
-  'SEKRETARIS DESA',
-  'KAUR KEUANGAN',
-  'KAUR TATA USAHA DAN UMUM',
-  'KAUR PERENCANAAN',
-  'KASI PEMERINTAHAN',
-  'KASI KESEJAHTERAAN',
-  'KASI PELAYANAN',
-];
-
-$jabatan_terisi = array_map(fn($s) => strtoupper(trim($s['jabatan'])), $struktur_desa);
-$jabatan_belum_ada = array_diff($jabatan_wajib, $jabatan_terisi);
-$bagan_lengkap = empty($jabatan_belum_ada);
-
-$icon_default = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
-
-function render_org_card($person, $icon_default, $is_kades = false)
-{
-  if (!$person) return '';
-  $foto = (!empty($person['foto']) && file_exists('../databases/photo/' . $person['foto'])) ? 'databases/photo/' . htmlspecialchars($person['foto']) : $icon_default;
-  $nama = htmlspecialchars($person['nama_lengkap']);
-  $jab = htmlspecialchars($person['jabatan']);
-  $kades_class = $is_kades ? ' kades-card' : '';
-  return '
-    <div class="org-card' . $kades_class . '">
-        <img src="' . $foto . '" alt="' . $nama . '">
-        <div class="org-card-info">
-            <div class="org-card-title">' . $jab . '</div>
-            <div class="org-card-name">' . $nama . '</div>
-        </div>
-    </div>';
-}
 ?>
 
 <!DOCTYPE html>
@@ -565,6 +520,18 @@ function render_org_card($person, $icon_default, $is_kades = false)
       margin: 0;
       font-size: 0.82rem;
       color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* ===== ANIMASI HOVER "NAIK" - konsisten dengan kartu statistik ===== */
+
+    /* Pastikan .card (kartu statistik) pakai animasi ini juga sebagai acuan utama */
+    .card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
     }
 
     @media (max-width: 768px) {
@@ -767,32 +734,10 @@ function render_org_card($person, $icon_default, $is_kades = false)
     }
 
     /* =========================================
-       STRUKTUR ORGANISASI (BAGAN DESA) - HIERARKI BELOK
+       STRUKTUR ORGANISASI (BAGAN DESA)
        ========================================= */
-    .org-container {
-      width: 100%;
-      overflow-x: auto;
-      /* Agar bisa digeser horizontal di layar kecil */
-      padding: 24px 20px 40px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      background: #fff;
-      border-radius: 14px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-    }
 
-    .org-title {
-      text-align: center;
-      font-size: 1.05rem;
-      font-weight: bold;
-      color: #0f4c3a;
-      max-width: 700px;
-      line-height: 1.5;
-      margin: 0 0 1.5rem;
-    }
-
-    /* ===== TAMPILAN SAAT BAGAN BELUM LENGKAP ===== */
+    /* ===== TAMPILAN BAGAN BELUM DISUSUN ===== */
     .org-belum-lengkap {
       background: #fff;
       border-radius: 14px;
@@ -828,390 +773,6 @@ function render_org_card($person, $icon_default, $is_kades = false)
       line-height: 1.6;
     }
 
-    .org-tree {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-width: 800px;
-      /* Lebar minimum agar garis hierarki tidak rusak */
-    }
-
-    .org-level {
-      display: flex;
-      justify-content: center;
-      position: relative;
-      width: 100%;
-    }
-
-    /* --- Desain Card --- */
-    .org-card {
-      width: 230px;
-      background: #fff;
-      border: 2px solid #0f4c3a;
-      /* Hijau Tua */
-      border-radius: 8px;
-      display: flex;
-      align-items: stretch;
-      position: relative;
-      z-index: 2;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      overflow: hidden;
-    }
-
-    .org-card.kades-card {
-      border-color: #f4b400;
-      /* Emas, konsisten dengan warna aksen situs untuk Kepala Desa */
-      box-shadow: 0 6px 12px rgba(244, 180, 0, 0.25);
-      transform: scale(1.05);
-    }
-
-    .org-card.kades-card .org-card-title {
-      background: #f4b400;
-      color: #0f4c3a;
-      /* Teks hijau tua di atas emas, sama seperti pola .visi-label yang sudah ada */
-      border-bottom: 2px solid #f4b400;
-    }
-
-    .org-card img {
-      width: 65px;
-      height: 75px;
-      object-fit: cover;
-      border-right: 2px solid #0f4c3a;
-      background: #f1f5f9;
-    }
-
-    .org-card.kades-card img {
-      border-right-color: #f4b400;
-    }
-
-    /* ===== BPD (Badan Permusyawaratan Desa) - kotak statis di samping Kades ===== */
-    .org-kades-wrapper {
-      position: relative;
-      display: inline-block;
-      /* Membungkus PAS ukuran kartu Kades, supaya BPD tidak ikut mengubah
-         posisi tengah kartu Kades (garis komando ke bawah tetap lurus) */
-    }
-
-    .org-bpd-wrapper {
-      position: absolute;
-      top: 50%;
-      left: 106%;
-      transform: translateY(-50%);
-      display: flex;
-      align-items: center;
-      z-index: 2;
-    }
-
-    .org-bpd-connector {
-      width: 40px;
-      height: 0;
-      border-top: 2px dashed #f4b400;
-      /* Garis koordinasi putus-putus, senada dengan warna emas kartu Kades */
-    }
-
-    .org-bpd-box {
-      background: #fff;
-      border: 2px solid #0f4c3a;
-      border-radius: 8px;
-      padding: 20px 30px;
-      margin-left: 8px;
-      font-weight: 700;
-      font-size: 0.8rem;
-      letter-spacing: 0.5px;
-      color: #0f4c3a;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      white-space: nowrap;
-    }
-
-    .org-card-info {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .org-card-title {
-      background: #0f4c3a;
-      color: #fff;
-      font-size: 0.65rem;
-      font-weight: 700;
-      padding: 4px;
-      text-align: center;
-      border-bottom: 2px solid #0f4c3a;
-      min-height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-transform: uppercase;
-      line-height: 1.1;
-      letter-spacing: 0.5px;
-    }
-
-    .org-card-name {
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 6px 4px;
-      text-align: center;
-      color: #333;
-      margin: auto 0;
-      word-break: break-word;
-      line-height: 1.2;
-    }
-
-    /* --- Garis Penghubung Hierarki (Komando/Koordinasi) --- */
-
-    /* Level 1: Kepala Desa */
-    .org-level-1 {
-      padding-bottom: 30px;
-    }
-
-    .org-level-1::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      width: 2px;
-      height: 30px;
-      background: #333;
-      /* Warna garis komando (hitam) */
-      transform: translateX(-50%);
-    }
-
-    /* Level 2: Sekretaris Desa (Garis Belok Kiri) */
-    .org-level-2 {
-      justify-content: center;
-      padding-bottom: 30px;
-    }
-
-    /* Membuat ruang agar Sekdes berada di kiri garis tengah */
-    .org-level-2-wrapper {
-      position: relative;
-      right: 150px;
-      /* Menggeser card sekdes ke kiri */
-      margin-top: 20px;
-      /* Jarak dari atas untuk garis belokan horizontal */
-    }
-
-    /* Garis vertikal utama (terus turun dari Kades untuk Kasi) */
-    .org-level-2::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 50%;
-      width: 2px;
-      background: #333;
-      transform: translateX(-50%);
-    }
-
-    /* Garis horizontal belok kiri ke arah Sekdes */
-    .org-level-2::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: calc(50% - 150px);
-      width: 150px;
-      height: 2px;
-      background: #333;
-    }
-
-    /* Garis vertikal turun menyambung masuk ke Atas Card Sekdes */
-    .org-level-2-wrapper::before {
-      content: '';
-      position: absolute;
-      top: -20px;
-      left: 50%;
-      width: 2px;
-      height: 20px;
-      background: #333;
-      transform: translateX(-50%);
-    }
-
-    /* Garis vertikal turun dari Bawah Card Sekdes (menuju barisan Kaur) */
-    .org-level-2-wrapper::after {
-      content: '';
-      position: absolute;
-      bottom: -30px;
-      left: 50%;
-      width: 2px;
-      height: 30px;
-      background: #333;
-      transform: translateX(-50%);
-    }
-
-    /* Level 3: Kaur dan Kasi */
-    .org-level-3 {
-      display: flex;
-      width: 100%;
-      max-width: 800px;
-      position: relative;
-      padding-bottom: 20px;
-    }
-
-    /* Garis vertikal utama terus turun untuk barisan Kasi */
-    .org-level-3::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      bottom: 60px;
-      /* Berhenti sejajar dengan kartu terakhir di bawah */
-      left: 50%;
-      width: 2px;
-      background: #333;
-      transform: translateX(-50%);
-      z-index: 1;
-    }
-
-    .org-col {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      padding: 0 0 20px 0;
-    }
-
-    /* SISI KIRI (KAUR) yang menyambung lurus dari Sekdes */
-    .org-col-left {
-      align-items: flex-end;
-      padding-right: 300px;
-      /* Jarak agar kartu berada di kiri garis vertikal Sekdes */
-      position: relative;
-    }
-
-    /* Lanjutan garis vertikal dari Sekdes terus ke bawah */
-    .org-col-left::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      bottom: 60px;
-      /* Berhenti sejajar dengan kartu terakhir */
-      right: 269px;
-      /* Sejajar pas dengan posisi tengah Sekdes */
-      width: 1.5px;
-      background: #333;
-    }
-
-    /* KUNCI PERBAIKAN: tanpa ini, garis ::after/::before tiap kartu malah
-       menumpuk di 1 titik yang sama (posisi induk .org-col-left/.org-col-right),
-       bukan menempel di kartu masing-masing */
-    .org-item-side {
-      position: relative;
-    }
-
-    /* Garis Horizontal menghubungkan sisi kartu Kaur ke garis vertikal Sekdes */
-    .org-col-left .org-item-side::after {
-      content: '';
-      position: absolute;
-      top: 46%;
-      right: -30px;
-      /* Menjembatani celah 30px ke garis vertikal */
-      width: 30px;
-      height: 2px;
-      background: #333;
-      /* Garis komando padat */
-      z-index: 1;
-    }
-
-    /* SISI KANAN (KASI) yang menyambung langsung dari Kades */
-    .org-col-right {
-      align-items: flex-start;
-      padding-left: 60px;
-      /* Jarak card menjauh dari garis vertikal tengah utama */
-    }
-
-    /* Garis Horizontal menghubungkan sisi kartu Kasi ke garis vertikal utama dari Kades */
-    .org-col-right .org-item-side::before {
-      content: '';
-      position: absolute;
-      top: 46%;
-      left: -179px;
-      width: 180px;
-      height: 2px;
-      background: #333;
-      z-index: 1;
-    }
-
-    /* Level 4: Jabatan Lainnya (Tanpa Garis, Rata Tengah, Maksimal 5 per baris) */
-    .org-level-4 {
-      display: flex;
-      flex-wrap: wrap;
-      /* Memungkinkan turun baris jika lebih dari 5 */
-      justify-content: center;
-      /* Rata tengah */
-      gap: 15px;
-      padding-top: 15px;
-      /* Kurangi padding atas karena tidak ada garis turun */
-      width: 100%;
-      max-width: 1200px;
-      position: relative;
-      z-index: 5;
-    }
-
-    .org-item-bottom .org-card-title {
-      font-size: 0.6rem;
-    }
-
-    /* Responsive untuk Layar HP (Mobile) */
-    @media (max-width: 768px) {
-      .visi-box {
-        padding: 1.4rem 1.3rem;
-      }
-
-      .visi-box p {
-        font-size: 1rem;
-      }
-
-      .misi-box {
-        padding: 1.3rem 1.4rem;
-      }
-
-      /* Hancurkan format bagan hierarki garis di Mobile agar tidak rusak, jadikan daftar menurun biasa */
-      .org-tree {
-        min-width: 100%;
-      }
-
-      .org-level-1::after,
-      .org-level-2::before,
-      .org-level-2::after,
-      .org-level-3::before,
-      .org-col-left::before {
-        display: none !important;
-      }
-
-      .org-level-2-wrapper {
-        right: 0;
-        margin-top: 0;
-      }
-
-      .org-level-2-wrapper::before,
-      .org-level-2-wrapper::after {
-        display: none !important;
-      }
-
-      .org-level-3 {
-        flex-direction: column;
-        align-items: center;
-        padding-bottom: 0;
-      }
-
-      .org-col {
-        padding: 0;
-        align-items: center !important;
-        width: 100%;
-      }
-
-      .org-col-left {
-        padding-right: 0;
-      }
-
-      .org-col-right {
-        padding-left: 0;
-      }
-
-      .org-col-left .org-item-side::after,
-      .org-col-right .org-item-side::before {
-        display: none !important;
-      }
-    }
   </style>
 </head>
 
@@ -1253,104 +814,59 @@ function render_org_card($person, $icon_default, $is_kades = false)
       <h3>Profil Desa</h3>
     </div>
 
-    <div class="chart-group-title">Tentang Desa Teluk Dalam</div>
-
+    <div class="chart-group-title">Sejarah Desa Teluk Dalam</div>
+    
     <div class="about">
       <img src="assets/Kantor_Desa_Teluk_Dalam,_Kutai_Kartanegara.jpg" alt="" class="profil-img">
-      <div>
-        <h3>Tentang Desa Teluk Dalam</h3>
-        <p class="justify">Desa Teluk Dalam adalah desa yang memiliki kekayaan alam, budaya, dan sumber daya masyarakat yang unggul. Pemerintah desa berkomitmen untuk memberikan pelayanan terbaik, meningkatkan kesejahteraan warga, serta menjaga kelestarian lingkungan. Website ini hadir sebagai sarana informasi resmi bagi masyarakat desa maupun pengunjung.</p>
-      </div>
-    </div>
-
-    <div class="chart-group-title">Sejarah Desa Teluk Dalam</div>
-    <div class="about">
       <div>
         <h3>Sejarah Singkat</h3>
         <p class="justify">Desa Teluk Dalam memiliki sejarah panjang yang kaya akan tradisi dan budaya lokal. Berdiri sejak abad ke-19, desa ini telah menjadi pusat kegiatan masyarakat setempat. Seiring waktu, Desa Teluk Dalam berkembang menjadi komunitas yang mandiri dengan berbagai potensi ekonomi dan sosial.</p>
         <p class="justify">Dalam beberapa dekade terakhir, Desa Teluk Dalam telah mengalami perkembangan signifikan dalam bidang pendidikan, kesehatan, dan infrastruktur. Pemerintah desa terus berupaya meningkatkan kualitas hidup warga melalui program-program pembangunan yang berkelanjutan.</p>
       </div>
-      <img src="assets/dermaga_teluk dalam.jpg" alt="Sejarah dan Perkembangan Desa Teluk Dalam" class="profil-img">
+    </div>
+    
+    <div class="chart-group-title">Potensi Desa Teluk Dalam</div>
+    <div class="about">
+      <div>
+        <h3>Potensi Desa</h3>
+        <p class="justify">Desa Teluk Dalam memiliki sejarah panjang yang kaya akan tradisi dan budaya lokal. Berdiri sejak abad ke-19, desa ini telah menjadi pusat kegiatan masyarakat setempat. Seiring waktu, Desa Teluk Dalam berkembang menjadi komunitas yang mandiri dengan berbagai potensi ekonomi dan sosial.</p>
+        <p class="justify">Dalam beberapa dekade terakhir, Desa Teluk Dalam telah mengalami perkembangan signifikan dalam bidang pendidikan, kesehatan, dan infrastruktur. Pemerintah desa terus berupaya meningkatkan kualitas hidup warga melalui program-program pembangunan yang berkelanjutan.</p>
+      </div>
+      <img src="assets/Kantor_Desa_Teluk_Dalam,_Kutai_Kartanegara.jpg" alt="" class="profil-img">
     </div>
 
     <div class="chart-group-title">Visi Misi Desa Teluk Dalam</div>
     <div class="visi-misi-wrap">
       <div class="visi-box">
         <span class="visi-label">Visi</span>
-        <p>"Mewujudkan Desa Teluk Dalam yang Mandiri, Sejahtera, dan Berbudaya melalui Pemberdayaan Masyarakat dan Pelestarian Lingkungan."</p>
+        <?php if ($profil_visi !== ''): ?>
+          <p>"<?= nl2br(htmlspecialchars($profil_visi)) ?>"</p>
+        <?php else: ?>
+          <p>Visi desa belum diisi.</p>
+        <?php endif; ?>
       </div>
       <div class="misi-box">
         <h3>Misi Desa</h3>
-        <ul class="misi-list">
-          <li><span class="misi-num">1</span><span>Meningkatkan kualitas pendidikan dan kesehatan masyarakat.</span></li>
-          <li><span class="misi-num">2</span><span>Mendorong pertumbuhan ekonomi lokal melalui pengembangan usaha mikro dan pertanian.</span></li>
-          <li><span class="misi-num">3</span><span>Melestarikan budaya dan tradisi lokal sebagai identitas desa.</span></li>
-          <li><span class="misi-num">4</span><span>Meningkatkan partisipasi masyarakat dalam pembangunan desa.</span></li>
-          <li><span class="misi-num">5</span><span>Menjaga kelestarian lingkungan dan sumber daya alam.</span></li>
-        </ul>
+        <?php if (!empty($profil_misi_list)): ?>
+          <ul class="misi-list">
+            <?php foreach ($profil_misi_list as $i => $poin): ?>
+              <li><span class="misi-num"><?= $i + 1 ?></span><span><?= htmlspecialchars($poin) ?></span></li>
+            <?php endforeach; ?>
+          </ul>
+        <?php else: ?>
+          <p style="color:#898781; font-size:0.9rem;">Misi desa belum diisi.</p>
+        <?php endif; ?>
       </div>
     </div>
 
     <!-- STRUKTUR ORGANISASI (BAGAN) -->
     <div class="chart-group-title">Bagan Struktur Organisasi</div>
 
-    <?php if ($bagan_lengkap): ?>
-
-      <div class="org-container">
-        <h4 class="org-title">Struktur Organisasi Pemerintah Desa Teluk Dalam Kecamatan Tenggarong Seberang Kabupaten Kutai Kertanegara</h4>
-        <div class="org-tree">
-
-          <!-- Level 1: Kepala Desa + BPD -->
-          <?php if ($kades): ?>
-            <div class="org-level org-level-1">
-              <div class="org-kades-wrapper">
-                <?= render_org_card($kades, $icon_default, true) ?>
-                <div class="org-bpd-wrapper">
-                  <div class="org-bpd-connector"></div>
-                  <div class="org-bpd-box">BPD</div>
-                </div>
-              </div>
-            </div>
-          <?php endif; ?>
-
-          <!-- Level 2: Sekretaris Desa -->
-          <?php if ($sekdes): ?>
-            <div class="org-level org-level-2">
-              <div class="org-level-2-wrapper">
-                <?= render_org_card($sekdes, $icon_default) ?>
-              </div>
-            </div>
-          <?php endif; ?>
-
-          <!-- Level 3: Kaur & Kasi (Garis Bercabang) -->
-          <?php if (!empty($kaur) || !empty($kasi)): ?>
-            <div class="org-level org-level-3">
-              <div class="org-col org-col-left">
-                <?php foreach ($kaur as $k) {
-                  echo '<div class="org-item-side">' . render_org_card($k, $icon_default) . '</div>';
-                } ?>
-              </div>
-              <div class="org-col org-col-right">
-                <?php foreach ($kasi as $k) {
-                  echo '<div class="org-item-side">' . render_org_card($k, $icon_default) . '</div>';
-                } ?>
-              </div>
-            </div>
-          <?php endif; ?>
-
-          <!-- Level 4: Perangkat Lainnya (TANPA GARIS, Max 5 per baris) -->
-          <?php if (!empty($lainnya)): ?>
-            <div class="org-level org-level-4">
-              <?php foreach ($lainnya as $l) {
-                echo '<div class="org-item-bottom">' . render_org_card($l, $icon_default) . '</div>';
-              } ?>
-            </div>
-          <?php endif; ?>
-        </div>
+    <?php if ($profil_bagan !== ''): ?>
+      <div class="chart-card full" style="text-align:center; padding:1.5rem;">
+        <img src="databases/bagan_desa/<?= htmlspecialchars($profil_bagan) ?>" alt="Bagan Struktur Organisasi Desa Teluk Dalam" style="max-width:100%; height:auto; border-radius:10px;">
       </div>
-
     <?php else: ?>
-
       <div class="org-belum-lengkap">
         <div class="org-belum-icon">
           <i class="fa-solid fa-sitemap"></i>
@@ -1358,7 +874,6 @@ function render_org_card($person, $icon_default, $is_kades = false)
         <h4>Bagan Struktur Organisasi Belum Disusun</h4>
         <p>Data jabatan belum lengkap, sehingga bagan struktur organisasi belum dapat ditampilkan.</p>
       </div>
-
     <?php endif; ?>
 
     <div class="chart-group-title">Lokasi Geografis Desa Teluk Dalam</div>
@@ -1376,9 +891,9 @@ function render_org_card($person, $icon_default, $is_kades = false)
         <h4>Batas Wilayah</h4>
         <ul class="geo-list">
           <li><span>Utara</span><strong>Desa Perjiwa</strong></li>
-          <li><span>Timur</span><strong>Desa Bukit Raya</strong></li>
-          <li><span>Selatan</span><strong>Kelurahan Timbau</strong></li>
-          <li><span>Barat</span><strong>Desa Loa Lepu</strong></li>
+          <li><span>Timur</span><strong>Desa Loa Lepu</strong></li>
+          <li><span>Selatan</span><strong>Desa Loa Lepu</strong></li>
+          <li><span>Barat</span><strong>Kelurahan Timbau</strong></li>
         </ul>
 
         <div class="geo-summary">
@@ -1536,8 +1051,8 @@ function render_org_card($person, $icon_default, $is_kades = false)
         <ul class="footer-list">
           <li><a href="tel:+62541123456"><i class="fa-solid fa-phone"></i> (0541) 123456</a></li>
           <li><a href="tel:+6281234567890"><i class="fa-solid fa-phone"></i> [GANTI NOMOR KE-2]</a></li>
-          <li><a href="https://mail.google.com/mail/u/0/?tab=rm&ogbl#inbox?compose=DmwnWsCcLdmcWmTsgvsnCKVkbsPqpzCJQcxtftdDjzntkFdNFltKNkjGzfhgBhWNFXxhCCNKJXkV" target="_blank" rel="noopener" aria-label="Email Desa Teluk Dalam">
-              <i class="fa-solid fa-envelope"></i> kkn52telukdalam@gmail.com</a></li>
+          <li><a href="https://mail.google.com/mail/u/0/?tab=rm&ogbl#inbox?compose=GTvVlcRwQMBgbQhZPFNGXXfGChXMHbDtxxhszNKvXmVGVMfFkpwFjcVrHzHQDtRfGGphlCBrbjFDt" target="_blank" rel="noopener" aria-label="Email Desa Teluk Dalam">
+              <i class="fa-solid fa-envelope"></i> pemerintahandesatelukdalam@gmail.com</a></li>
         </ul>
         <div class="footer-social">
           <a href="https://www.instagram.com/kkn52_telukdalam?igsh=dmdnMThvbjRuMm9p" target="_blank" rel="noopener" aria-label="Instagram Desa Teluk Dalam">

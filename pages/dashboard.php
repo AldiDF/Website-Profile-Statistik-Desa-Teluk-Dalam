@@ -79,7 +79,7 @@ $grouped = group_by_kk($data_penduduk);
 
         <div class="nav-menu" id="navMenu">
             <a href="dashboard" class="active">Data Penduduk</a>
-            <a href="struktur_desa">Perangkat Desa</a>
+            <a href="profile">Profil Desa</a>
             <a href="databases/logout.php">Keluar</a>
         </div>
     </nav>
