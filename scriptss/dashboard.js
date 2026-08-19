@@ -106,3 +106,96 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Inisialisasi toggle navigasi yang independen dan form profil
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Toggle Navigasi Sidebar
+    const navToggle = document.getElementById('navToggle');
+    const navMenu = document.getElementById('navMenu');
+    
+    if (navToggle && navMenu) {
+        navToggle.addEventListener('click', function() {
+            navMenu.classList.toggle('open');
+        });
+    }
+
+    // ==========================
+    // DRAG & DROP UPLOAD GAMBAR BAGAN (Halaman Profil)
+    // ==========================
+    const dropzone = document.getElementById('dropzone');
+    
+    // Pastikan kode ini hanya dieksekusi jika berada di halaman profil
+    if (dropzone) { 
+        const baganInput = document.getElementById('baganInput');
+        const previewWrap = document.getElementById('dzPreviewWrap');
+        const previewImg = document.getElementById('dzPreviewImg');
+        const previewCaption = document.getElementById('dzPreviewCaption');
+        const hapusCheck = document.getElementById('hapusBaganCheck');
+
+        function tampilkanPreview(file) {
+            if (!file || !file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                previewCaption.textContent = 'Gambar baru (belum disimpan): ' + file.name;
+                previewWrap.classList.add('show');
+                
+                // Kalau sebelumnya user centang "hapus gambar", batalkan otomatis
+                if (hapusCheck) {
+                    hapusCheck.checked = false;
+                    hapusCheck.closest('.dz-remove-check').style.display = 'none';
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        dropzone.addEventListener('click', () => baganInput.click());
+
+        baganInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                tampilkanPreview(this.files[0]);
+            }
+        });
+
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropzone.addEventListener(evt, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(evt => {
+            dropzone.addEventListener(evt, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.remove('dragover');
+            });
+        });
+
+        dropzone.addEventListener('drop', function(e) {
+            const file = e.dataTransfer.files && e.dataTransfer.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                alert('File yang ditarik bukan gambar. Silakan pilih file JPG, PNG, atau WEBP.');
+                return;
+            }
+            
+            // Supaya file yang di-drop ikut terkirim saat form disubmit
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            baganInput.files = dt.files;
+            tampilkanPreview(file);
+        });
+
+        // Kosongkan pratinjau baru jika pengguna centang hapus gambar
+        if (hapusCheck) {
+            hapusCheck.addEventListener('change', function() {
+                if (this.checked) {
+                    baganInput.value = '';
+                }
+            });
+        }
+    }
+});
