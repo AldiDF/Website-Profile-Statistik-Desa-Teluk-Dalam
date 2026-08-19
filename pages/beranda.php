@@ -820,8 +820,9 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
       <img src="assets/Kantor_Desa_Teluk_Dalam,_Kutai_Kartanegara.jpg" alt="" class="profil-img">
       <div>
         <h3>Sejarah Singkat</h3>
-        <p class="justify">Desa Teluk Dalam memiliki sejarah panjang yang kaya akan tradisi dan budaya lokal. Berdiri sejak abad ke-19, desa ini telah menjadi pusat kegiatan masyarakat setempat. Seiring waktu, Desa Teluk Dalam berkembang menjadi komunitas yang mandiri dengan berbagai potensi ekonomi dan sosial.</p>
-        <p class="justify">Dalam beberapa dekade terakhir, Desa Teluk Dalam telah mengalami perkembangan signifikan dalam bidang pendidikan, kesehatan, dan infrastruktur. Pemerintah desa terus berupaya meningkatkan kualitas hidup warga melalui program-program pembangunan yang berkelanjutan.</p>
+        <p class="justify" style="margin-top:8px; margin-bottom:8px;">Desa Teluk Dalam merupakan desa pemekaran yang sebelumnya tergabung dalam wilayah Kelurahan Timbau sebelum akhirnya resmi berdiri sendiri pada tahun 1975. Selama kurang lebih 52 tahun perjalanannya sejak berpisah dari Kelurahan Timbau, desa ini telah mengalami perkembangan, di mana awalnya terdiri dari 2 Rukun Tetangga (RT) dan kini telah bertambah menjadi 4 RT.</p>
+        <p class="justify">Sepanjang sejarahnya berdirinya, kepemimpinan telah dipegang oleh delapan kepala desa terdahulu, dan di bawah kepemimpinan kepala desa yang kesembilan saat ini, Desa Teluk Dalam terus berkembang dan mampu berdiri dengan sangat baik</p>
+
       </div>
     </div>
     
@@ -829,10 +830,13 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
     <div class="about">
       <div>
         <h3>Potensi Desa</h3>
-        <p class="justify">Desa Teluk Dalam memiliki sejarah panjang yang kaya akan tradisi dan budaya lokal. Berdiri sejak abad ke-19, desa ini telah menjadi pusat kegiatan masyarakat setempat. Seiring waktu, Desa Teluk Dalam berkembang menjadi komunitas yang mandiri dengan berbagai potensi ekonomi dan sosial.</p>
-        <p class="justify">Dalam beberapa dekade terakhir, Desa Teluk Dalam telah mengalami perkembangan signifikan dalam bidang pendidikan, kesehatan, dan infrastruktur. Pemerintah desa terus berupaya meningkatkan kualitas hidup warga melalui program-program pembangunan yang berkelanjutan.</p>
+        <p class="justify">Deskripsi Potensi Desa.</p>
+        <!-- <p class="justify">Dalam beberapa dekade terakhir, Desa Teluk Dalam telah mengalami perkembangan signifikan dalam bidang pendidikan, kesehatan, dan infrastruktur. Pemerintah desa terus berupaya meningkatkan kualitas hidup warga melalui program-program pembangunan yang berkelanjutan.</p> -->
       </div>
-      <img src="assets/Kantor_Desa_Teluk_Dalam,_Kutai_Kartanegara.jpg" alt="" class="profil-img">
+      <video class="profil-img" controls preload="metadata" poster="assets/thumbnail_potensi_desa.jpeg" >
+        <source src="assets/potensi_desa.mp4" type="video/mp4">
+        Browser Anda tidak mendukung pemutaran video.
+      </video>
     </div>
 
     <div class="chart-group-title">Visi Misi Desa Teluk Dalam</div>

@@ -393,6 +393,7 @@ function render_anggota_block($a, $nomor)
                     <option value="">-- Pilih --</option>
                     <?= opsi_select('pendidikan_terakhir', [
                         'TIDAK SEKOLAH',
+                        'PAUD/TK',
                         'SD/SEDERAJAT',
                         'SLTP/SEDERAJAT',
                         'SLTA/SEDERAJAT',
