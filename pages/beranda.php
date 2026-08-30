@@ -382,8 +382,9 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
     </div>
     <div class="hero-overlay"></div>
     <div class="hero-content" id="heroContent">
-      <h2>Selamat Datang di Website Resmi Desa Teluk Dalam</h2>
-      <a href="#profil" class="btn" id="viewProfileBtn">Lihat Profil Desa</a>
+      <h2>Desa Teluk Dalam, Kampung Kami, Rumah Kita Bersama</h2>
+      <p>Website resmi Pemerintah Desa Teluk Dalam sebagai jembatan informasi antara desa dan masyarakat.</p>
+      <a href="#profil" class="btn" id="viewProfileBtn">Jelajahi Desa</a>
     </div>
     <div class="hero-dots" id="heroDots"></div>
   </section>
@@ -409,8 +410,8 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
     <div class="about">
       <div>
         <h3>Potensi Desa</h3>
-        <p class="justify">Deskripsi Potensi Desa.</p>
-        <!-- <p class="justify">Dalam beberapa dekade terakhir, Desa Teluk Dalam telah mengalami perkembangan signifikan dalam bidang pendidikan, kesehatan, dan infrastruktur. Pemerintah desa terus berupaya meningkatkan kualitas hidup warga melalui program-program pembangunan yang berkelanjutan.</p> -->
+        <p class="justify" style="margin-top:8px; margin-bottom:8px;">Video ini memperkenalkan Desa Teluk Dalam, sebuah desa yang berada di jalur penghubung antara Kutai Kartanegara dan Kota Samarinda. Selain memperlihatkan kondisi wilayah dan kehidupan masyarakat, video ini juga mengangkat potensi yang menjadi bagian penting dari keseharian warga desa.</p>
+        <p class="justify">Potensi tersebut terlihat dari usaha perikanan keramba yang menjadi salah satu sumber penghidupan masyarakat, serta UMKM yang mengolah hasil perikanan menjadi amplang walet. Melalui video ini, Desa Teluk Dalam tidak hanya diperkenalkan dari sisi wilayahnya, tetapi juga dari kehidupan, usaha, dan potensi masyarakat yang terus berkembang.</p>
       </div>
       <video class="profil-img" controls preload="metadata" poster="assets/thumbnail_potensi_desa.jpeg" >
         <source src="assets/potensi_desa_compressed.mp4" type="video/mp4">
@@ -615,8 +616,8 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
           </span>
         </div>
         <p class="footer-address" style="text-align: justify;">
-          📍Jalan ST Kereta Gantung RT 003, Desa Teluk Dalam, Kecamatan Tenggarong Seberang,
-          Kabubaten Kutai Kartanegara, Provinsi Kalimantan Timur, 75572
+          📍Jalan ST Kereta Gantung, Desa Teluk Dalam, Kecamatan Tenggarong Seberang,
+          Kabupaten Kutai Kartanegara, Provinsi Kalimantan Timur, 75572
         </p>
       </div>
 
