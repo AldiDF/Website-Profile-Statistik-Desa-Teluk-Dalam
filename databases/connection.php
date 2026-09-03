@@ -8,9 +8,9 @@
 // Untuk production, sebaiknya pindahkan ke file .env terpisah (lihat catatan di bawah).
 
 $server   = "localhost";
-$user     = "root";
-$password = "";
-$db_nama  = "db_telukdalam";
+$user     = "telf6448_telukdalam13";
+$password = "KKN52_telukdalam";
+$db_nama  = "telf6448_db_telukdalam";
 
 // ==========================
 // KONEKSI DENGAN EXCEPTION HANDLING
