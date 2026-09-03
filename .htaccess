@@ -1,8 +1,8 @@
 Options -Indexes
 RewriteEngine On
 
-# Tanda kutip WAJIB digunakan karena ada spasi pada nama folder "Profil Statistik Desa"
-RewriteBase "/Profil Statistik Desa/Website-Profile-Statistik-Desa-Teluk-Dalam/"
+# Di hosting, project langsung di root (public_html), jadi RewriteBase cukup "/"
+RewriteBase /
 
 # 1. Jika yang diakses adalah file/folder asli (seperti CSS, JS, Gambar), tampilkan apa adanya
 RewriteCond %{REQUEST_FILENAME} -f [OR]
