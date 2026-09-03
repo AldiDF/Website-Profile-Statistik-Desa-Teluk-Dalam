@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$locked_out) {
             <button type="submit" class="btn-login" <?= $locked_out ? 'disabled' : '' ?>>Masuk</button>
         </form>
 
-        <a href="beranda" class="back-link">&larr; Kembali ke Beranda</a>
+        <a href="/" class="back-link">&larr; Kembali ke Beranda</a>
     </div>
 </body>
 
