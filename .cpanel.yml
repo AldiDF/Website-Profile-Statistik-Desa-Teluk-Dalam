@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/telf6448/public_html/
+    - /bin/cp -R * $DEPLOYPATH
