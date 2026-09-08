@@ -232,6 +232,11 @@ body {
 
 .table-wrapper {
     overflow-x: auto;
+    transform: rotateX(180deg);
+}
+
+.table-wrapper table {
+    transform: rotateX(180deg);
 }
 
 table {
