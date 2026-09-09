@@ -699,7 +699,7 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
         labels: genderLabels,
         datasets: [{
           data: genderData,
-          backgroundColor: ['#e87ba4', '#2a78d6'],
+          backgroundColor: ['#2a78d6', '#e87ba4'],
           borderColor: '#ffffff',
           borderWidth: 2
         }]
