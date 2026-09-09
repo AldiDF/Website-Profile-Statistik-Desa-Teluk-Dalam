@@ -395,7 +395,7 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
     </div>
 
     <div class="chart-group-title">Sejarah Desa Teluk Dalam</div>
-    
+
     <div class="about">
       <img src="assets/Kantor_Desa_Teluk_Dalam,_Kutai_Kartanegara.jpg" alt="" class="profil-img">
       <div>
@@ -405,7 +405,7 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
 
       </div>
     </div>
-    
+
     <div class="chart-group-title">Potensi Desa Teluk Dalam</div>
     <div class="about">
       <div>
@@ -413,7 +413,7 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
         <p class="justify" style="margin-top:8px; margin-bottom:8px;">Video ini memperkenalkan Desa Teluk Dalam, sebuah desa yang berada di jalur penghubung antara Kutai Kartanegara dan Kota Samarinda. Selain memperlihatkan kondisi wilayah dan kehidupan masyarakat, video ini juga mengangkat potensi yang menjadi bagian penting dari keseharian warga desa.</p>
         <p class="justify">Potensi tersebut terlihat dari usaha perikanan keramba yang menjadi salah satu sumber penghidupan masyarakat, serta UMKM yang mengolah hasil perikanan menjadi amplang walet. Melalui video ini, Desa Teluk Dalam tidak hanya diperkenalkan dari sisi wilayahnya, tetapi juga dari kehidupan, usaha, dan potensi masyarakat yang terus berkembang.</p>
       </div>
-      <video class="profil-img" controls preload="metadata" poster="assets/thumbnail_potensi_desa.jpeg" >
+      <video class="profil-img" controls preload="metadata" poster="assets/thumbnail_potensi_desa.jpeg">
         <source src="assets/potensi_desa_compressed.mp4" type="video/mp4">
         Browser Anda tidak mendukung pemutaran video.
       </video>
@@ -693,6 +693,38 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
     const dependencyLabels = ['Usia Produktif (15-64 th)', 'Usia Non-Produktif'];
     const dependencyData = [<?= $usia_produktif ?>, <?= $usia_muda + $usia_tua ?>];
 
+    // ==========================
+    // Daftarkan plugin datalabels sekali secara GLOBAL, supaya berlaku
+    // untuk semua chart (batang & pie/donat), tidak perlu ditulis berulang.
+    // ==========================
+    Chart.register(ChartDataLabels);
+
+    // Format angka batang: pakai pemisah ribuan ala Indonesia, sembunyikan kalau 0
+    function formatAngkaBatang(value) {
+      const v = Math.abs(value);
+      return v > 0 ? v.toLocaleString('id-ID') : '';
+    }
+
+    // Format label pie/donat: tampilkan persentase terhadap total dataset
+    function formatPersenIrisan(value, ctx) {
+      const data = ctx.chart.data.datasets[0].data;
+      const total = data.reduce((a, b) => a + b, 0);
+      if (!total || value <= 0) return '';
+      return (value / total * 100).toFixed(1).replace('.', ',') + '%';
+    }
+
+    // Style label default untuk pie/donat (putih + outline tipis biar kebaca di warna apa pun)
+    const datalabelsIrisanStyle = {
+      color: '#fff',
+      textStrokeColor: 'rgb(0, 0, 0)',
+      textStrokeWidth: 3,
+      font: {
+        size: 12,
+        weight: '600'
+      },
+      formatter: formatPersenIrisan
+    };
+
     new Chart(document.getElementById('genderChart'), {
       type: 'doughnut',
       data: {
@@ -710,7 +742,8 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
         plugins: {
           legend: {
             position: 'bottom'
-          }
+          },
+          datalabels: datalabelsIrisanStyle
         }
       }
     });
@@ -732,6 +765,16 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
         plugins: {
           legend: {
             display: false
+          },
+          datalabels: {
+            color: '#333',
+            anchor: 'end',
+            align: 'end',
+            font: {
+              weight: '600',
+              size: 11
+            },
+            formatter: formatAngkaBatang
           }
         },
         scales: {
@@ -773,6 +816,16 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
         plugins: {
           legend: {
             display: false
+          },
+          datalabels: {
+            color: '#333',
+            anchor: 'end',
+            align: 'end',
+            font: {
+              weight: '600',
+              size: 11
+            },
+            formatter: formatAngkaBatang
           }
         },
         scales: {
@@ -811,14 +864,30 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+          padding: {
+            top: 24 // kasih ruang di atas biar label angka di batang tertinggi tidak terpotong
+          }
+        },
         plugins: {
           legend: {
             display: false
+          },
+          datalabels: {
+            color: '#333',
+            anchor: 'end',
+            align: 'end',
+            font: {
+              weight: '600',
+              size: 11
+            },
+            formatter: formatAngkaBatang
           }
         },
         scales: {
           y: {
             beginAtZero: true,
+            suggestedMax: Math.ceil(Math.max(...rtData) * 1.15),
             ticks: {
               color: '#898781',
               stepSize: 1
@@ -843,11 +912,13 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
       ...piramidaLakiData.map(v => Math.abs(v)),
       ...piramidaPerempuanData
     );
-    const piramidaAxisLimit = Math.ceil(piramidaMaxValue / 5) * 5;
+    // Dikasih buffer ±15% supaya batang terpanjang tidak mentok di ujung sumbu-X —
+    // kalau mentok, label angkanya (yang diletakkan di luar ujung batang) akan
+    // "tabrakan" / ketimpa label sumbu-Y di sebelah kiri.
+    const piramidaAxisLimit = Math.ceil((piramidaMaxValue * 1.15) / 5) * 5;
 
     new Chart(document.getElementById('piramidaChart'), {
       type: 'bar',
-      plugins: [ChartDataLabels],
       data: {
         labels: piramidaKelompokUsia,
         datasets: [{
@@ -868,6 +939,12 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+          padding: {
+            left: 8,
+            right: 8
+          }
+        },
         plugins: {
           legend: {
             position: 'top'
@@ -909,12 +986,15 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
               color: '#898781'
             },
             grid: {
-              display: false
+              display: true,
+              color: '#e1e0d9', // warna sama dengan kisi vertikal (sumbu-X) biar konsisten
+              drawTicks: false
             }
           }
         }
       }
     });
+
     new Chart(document.getElementById('agamaChart'), {
       type: 'doughnut',
       data: {
@@ -938,7 +1018,8 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
                 size: 11
               }
             }
-          }
+          },
+          datalabels: datalabelsIrisanStyle
         }
       }
     });
@@ -959,6 +1040,16 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
         plugins: {
           legend: {
             display: false
+          },
+          datalabels: {
+            color: '#333',
+            anchor: 'end',
+            align: 'end',
+            font: {
+              weight: '600',
+              size: 11
+            },
+            formatter: formatAngkaBatang
           }
         },
         scales: {
@@ -1012,7 +1103,8 @@ if ($qProfil && mysqli_num_rows($qProfil) > 0) {
                 size: 11
               }
             }
-          }
+          },
+          datalabels: datalabelsIrisanStyle
         }
       }
     });
